@@ -267,19 +267,15 @@ function VerifierView({ bounty }) {
     if (!topicInput) return;
     setLoading('grok');
     try {
-      // Simulate url construction for the scraper (legacy param, but kept for consistency)
-      const url = `https://grokipedia.x.ai/topic/${encodeURIComponent(topicInput)}`;
-      const result = await fetchGrokSource({ topic: topicInput, url }); // Pass topic for Gemini mode
+      const result = await fetchGrokSource({ topic: topicInput, includeStats });
 
-      if (result.data.manual_required) {
-         setToast({ type: 'warning', message: "⚠️ Grok Shield Detected. Switching to Manual Mode." });
-      } else if (result.data.text) {
+      if (result.data.text) {
          setSuspectText(result.data.text);
-         setToast({ type: 'success', message: "Source fetched successfully." });
+         setToast({ type: 'success', message: "✓ Grokipedia & alternative sources fetched with semantic analysis." });
       }
     } catch (err) {
        console.error(err);
-       setToast({ type: 'warning', message: "⚠️ Connection Failed. Switching to Manual Mode." });
+       setToast({ type: 'warning', message: "⚠️ Connection Failed. Using fallback." });
     } finally {
       setLoading('');
     }
@@ -291,8 +287,10 @@ function VerifierView({ bounty }) {
     try {
         const result = await fetchConsensus({ topic: topicInput, mode: consensusMode, includeStats });
         setConsensusText(result.data.consensusText);
+        setToast({ type: 'success', message: `✓ Fetched from Wikipedia${consensusMode === 'medical' ? ' & PubMed' : ''} with semantic analysis.` });
     } catch (err) {
         console.error(err);
+        setToast({ type: 'warning', message: '⚠️ Could not fetch consensus.' });
     } finally {
         setLoading('');
     }
@@ -305,6 +303,7 @@ function VerifierView({ bounty }) {
       const result = await analyzeDiscrepancy({
         suspectText,
         consensusText,
+        includeStats // Pass stats toggle
       });
       setAnalysis(result.data);
     } catch (err) {
