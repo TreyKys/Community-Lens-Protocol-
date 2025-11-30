@@ -79,19 +79,19 @@ function BountyBoardView({ onViewBounty }) {
     const [newBountyReward, setNewBountyReward] = useState(100);
     const [creatingStatus, setCreatingStatus] = useState(''); // 'loading' | 'success' | 'error'
 
-    useEffect(() => {
-        const loadBounties = async () => {
-            try {
-                const result = await getBounties();
-                if (result.data && Array.isArray(result.data)) {
-                    result.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    setBounties(result.data);
-                }
-            } catch (error) {
-                console.error("Error loading bounties:", error);
+    const loadBounties = async () => {
+        try {
+            const result = await getBounties();
+            if (result.data && Array.isArray(result.data)) {
+                result.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setBounties(result.data);
             }
-        };
-        
+        } catch (error) {
+            console.error("Error loading bounties:", error);
+        }
+    };
+
+    useEffect(() => {
         // Load bounties on mount and poll for updates
         loadBounties();
         const interval = setInterval(loadBounties, 2000);
@@ -106,6 +106,10 @@ function BountyBoardView({ onViewBounty }) {
             await createBounty({ userQuery: newBountyQuery, rewardAmount: newBountyReward });
             setCreatingStatus('success');
             setNewBountyQuery('');
+            
+            // Immediately refresh bounties to show new one
+            await loadBounties();
+            
             setTimeout(() => {
                 setIsCreating(false);
                 setCreatingStatus('');
