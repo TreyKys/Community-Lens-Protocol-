@@ -1,0 +1,121 @@
+
+
+
+Scaling trust in the age of AI. Global Hackathon - Supported by OriginTrail x Polkadot x Umanitek
+Prize pool
+
+30,000 USD
+
+event timeline
+Submission period ended
+Upcoming
+Pre-registration
+2025/10/14 23:00
+Submission
+2025/11/03 10:00
+Deadline
+2025/11/21 23:59
+Extended
+2025/11/28 23:59
+Virtual
+Hackathon Tags
+decentralized AI
+Web3
+decentralized knowledge graph
+blockchain
+AI
+Platform technology
+OriginTrail DKG
+Polkadot
+Base
+MCP
+Submission Requirements
+GitHub/Gitlab/Bitbucket Link Required
+Demo Video Required
+
+OriginTrail
+Details
+BUIDLs
+17
+Hackers
+174
+Join a Team
+New
+Tracks
+Judging Criteria
+Rules — T&Cs and Code of Conduct
+Ask Question
+2
+Ideas
+Outline
+
+💡 Excellence innovation
+⚙️ Technical implementation code quality
+💥 Impact relevance
+⚖️ Ethics, sustainability openness
+🎬 Communication presentation
+💡 Excellence & innovation
+Originality, conceptual rigor, and creative integration across all three layers.
+
+Weight: 20%
+
+Judges assess:
+
+Innovative multi-layer architecture linking agents, DKG, and trust mechanisms
+Originality of agent behavior: e.g., AI agents that detect misinformation, verify truth, or transact autonomously
+Use of Polkadot interoperability and shared security to empower new AI functions (cross-chain reasoning, governance, oracles)
+Depth of analysis and accuracy: sound judgment, factual precision, and clear reasoning behind claims or verifications
+Conceptual clarity and visual logic (architecture diagrams, reasoning workflows)
+Potential to advance the NeuroWeb–Polkadot trust layer
+Scoring guide: 5 – Groundbreaking & technically advanced | 4 – Highly innovative & clear | 3 – Good but incremental | 2 – Limited originality | 1 – Weak concept
+
+⚙️ Technical implementation & code quality
+Execution depth, interoperability, and clarity.
+
+Weight: 40%
+
+Judges assess:
+
+Functional implementation of your project
+Use of the DKG Edge Node (hard requirement)
+Use of DKG Knowledge Assets (discoverable, linked Knowledge Assets, valid JSON-LD/RDF)
+Code quality, documentation, and architecture clarity
+Scoring guide: 5 – Fully functional & interoperable prototype | 4 – Working with minor issues | 3 – Prototype or partial integration | 2 – Limited functionality | 1 – Minimal execution
+
+💥 Impact & relevance
+Societal, ecosystem, and multi-chain impact.
+
+Weight: 20%
+
+Judges assess:
+
+Contribution to the theme (Scaling Trust in the Age of AI) through cross-chain knowledge integrity
+Real-world value: misinformation defense, decentralized governance, identity verification, or transparent data economy
+Measurable outcomes — e.g., improved accuracy, verifiable provenance, or enhanced ecosystem usability
+Scoring guide: 5 – Transformative multi-chain impact | 4 – Strong ecosystem contribution | 3 – Moderate but promising | 2 – Limited relevance | 1 – Minimal impact
+
+⚖️ Ethics, sustainability & openness
+Responsible, transparent, and open collaboration.
+
+Weight: 10%
+
+Judges assess:
+
+Transparency and provenance (verifiable data, clear authorship, and auditability)
+Use of open-source standards and interoperability principles
+Alignment with human-centric values: openness, inclusion, and trustworthiness
+Scoring guide: 5 – Exemplary ethical & sustainable design | 4 – Strong practices | 3 – Adequate awareness | 2 – Limited evidence | 1 – Absent consideration
+
+🎬 Communication & presentation
+Clarity and persuasiveness of storytelling.
+
+Weight: 10%
+
+Judges assess:
+
+Clarity in demonstrating three-layer interoperability
+Thoroughness of explanation — does the team clearly show how and why their system works?
+Highlight of key insights or discrepancies (where relevant)
+Visual clarity: effective use of diagrams, demos, and examples
+Narrative engagement: connection between technical execution and societal purpose
+Scoring guide: 5 – Outstanding clarity & storytelling | 4 – Strong & engaging | 3 – Clear but unpolished | 2 – Hard to follow | 1 – Poor or incomplete

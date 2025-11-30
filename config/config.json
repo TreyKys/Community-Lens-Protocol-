@@ -1,0 +1,1109 @@
+{
+    "development": {
+        "modules": {
+            "autoUpdater": {
+                "enabled": false,
+                "implementation": {
+                    "ot-auto-updater": {
+                        "enabled": false,
+                        "package": "./auto-updater/implementation/ot-auto-updater.js",
+                        "config": {
+                            "branch": "v8/develop"
+                        }
+                    }
+                }
+            },
+            "httpClient": {
+                "enabled": true,
+                "implementation": {
+                    "express-http-client": {
+                        "enabled": true,
+                        "package": "./http-client/implementation/express-http-client.js",
+                        "config": {
+                            "useSsl": false,
+                            "port": 8900,
+                            "sslKeyPath": "/root/certs/privkey.pem",
+                            "sslCertificatePath": "/root/certs/fullchain.pem",
+                            "rateLimiter": {
+                                "timeWindowSeconds": 60,
+                                "maxRequests": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "network": {
+                "enabled": true,
+                "implementation": {
+                    "libp2p-service": {
+                        "enabled": true,
+                        "package": "./network/implementation/libp2p-service.js",
+                        "config": {
+                            "dht": {
+                                "kBucketSize": 20
+                            },
+                            "nat": {
+                                "enabled": false,
+                                "externalIp": null
+                            },
+                            "connectionManager": {
+                                "autoDial": true,
+                                "autoDialInterval": 10e3,
+                                "dialTimeout": 2e3
+                            },
+                            "peerRouting": {
+                                "refreshManager": {
+                                    "enabled": true,
+                                    "interval": 6e5,
+                                    "bootDelay": 2e3
+                                }
+                            },
+                            "port": 9100,
+                            "bootstrap": []
+                        }
+                    }
+                }
+            },
+            "repository": {
+                "enabled": true,
+                "implementation": {
+                    "sequelize-repository": {
+                        "enabled": true,
+                        "package": "./repository/implementation/sequelize/sequelize-repository.js",
+                        "config": {
+                            "database": "operationaldb",
+                            "user": "root",
+                            "password": "",
+                            "port": "3306",
+                            "host": "localhost",
+                            "dialect": "mysql",
+                            "logging": false,
+                            "pool": {
+                                "max": 120,
+                                "min": 0,
+                                "acquire": 60000,
+                                "idle": 10000,
+                                "evict": 1000
+                            }
+                        }
+                    }
+                }
+            },
+            "tripleStore": {
+                "enabled": true,
+                "timeout": {
+                    "query": 60000,
+                    "get": 10000,
+                    "batchGet": 10000,
+                    "insert": 300000,
+                    "ask": 10000
+                },
+                "implementation": {
+                    "ot-blazegraph": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-blazegraph/ot-blazegraph.js",
+                        "config": {}
+                    },
+                    "ot-fuseki": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-fuseki/ot-fuseki.js",
+                        "config": {}
+                    },
+                    "ot-graphdb": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-graphdb/ot-graphdb.js",
+                        "config": {}
+                    },
+                    "ot-neptune": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-neptune/ot-neptune.js",
+                        "config": {}
+                    }
+                }
+            },
+            "validation": {
+                "enabled": true,
+                "implementation": {
+                    "merkle-validation": {
+                        "enabled": true,
+                        "package": "./validation/implementation/merkle-validation.js",
+                        "config": {}
+                    }
+                }
+            },
+            "blockchain": {
+                "enabled": true,
+                "implementation": {
+                    "hardhat1:31337": {
+                        "enabled": true,
+                        "package": "./blockchain/implementation/hardhat/hardhat-service.js",
+                        "config": {
+                            "hubContractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                            "rpcEndpoints": ["http://localhost:8545"],
+                            "evmManagementPublicKey": "0x1B420da5f7Be66567526E32bc68ab29F1A63765A",
+                            "initialStakeAmount": 50000,
+                            "initialAskAmount": 0.2,
+                            "operatorFee": 0
+                        }
+                    },
+                    "hardhat2:31337": {
+                        "enabled": true,
+                        "package": "./blockchain/implementation/hardhat/hardhat-service.js",
+                        "config": {
+                            "hubContractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                            "rpcEndpoints": ["http://localhost:9545"],
+                            "evmManagementPublicKey": "0x1B420da5f7Be66567526E32bc68ab29F1A63765A",
+                            "initialStakeAmount": 50000,
+                            "initialAskAmount": 0.2,
+                            "operatorFee": 0
+                        }
+                    }
+                }
+            },
+            "telemetry": {
+                "enabled": false,
+                "implementation": {
+                    "quest-telemetry": {
+                        "enabled": true,
+                        "package": "./telemetry/implementation/quest-telemetry.js",
+                        "config": {
+                            "localEndpoint": "http::addr=localhost:10000",
+                            "signalingServiceEndpoint": "",
+                            "sendToSignalingService": false
+                        }
+                    }
+                }
+            },
+            "blockchainEvents": {
+                "enabled": true,
+                "implementation": {
+                    "ot-ethers": {
+                        "enabled": true,
+                        "package": "./blockchain-events/implementation/ot-ethers/ot-ethers.js",
+                        "config": {
+                            "blockchains": ["hardhat1:31337", "hardhat2:31337"],
+                            "rpcEndpoints": {
+                                "hardhat1:31337": ["http://localhost:8545"],
+                                "hardhat2:31337": ["http://localhost:9545"]
+                            },
+                            "hubContractAddress": {
+                                "hardhat1:31337": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                                "hardhat2:31337": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "maximumAssertionSizeInKb": 500000,
+        "commandExecutorVerboseLoggingEnabled": false,
+        "appDataPath": "data",
+        "logging": {
+            "defaultLevel": "trace",
+            "enableExperimentalScopes": true
+        },
+        "assetSync": {
+            "syncDKG": {
+                "enabled": true,
+                "syncBatchSize": 5,
+                "doneThreshold": 95
+            },
+            "syncParanets": []
+        },
+        "auth": {
+            "ipBasedAuthEnabled": true,
+            "tokenBasedAuthEnabled": false,
+            "loggingEnabled": true,
+            "ipWhitelist": ["::1", "127.0.0.1"],
+            "publicOperations": [],
+            "bothIpAndTokenAuthRequired": false
+        }
+    },
+    "test": {
+        "modules": {
+            "autoUpdater": {
+                "enabled": false,
+                "implementation": {
+                    "ot-auto-updater": {
+                        "enabled": false,
+                        "package": "./auto-updater/implementation/ot-auto-updater.js",
+                        "config": {
+                            "branch": "v8/develop"
+                        }
+                    }
+                }
+            },
+            "httpClient": {
+                "enabled": true,
+                "implementation": {
+                    "express-http-client": {
+                        "enabled": true,
+                        "package": "./http-client/implementation/express-http-client.js",
+                        "config": {
+                            "useSsl": false,
+                            "sslKeyPath": "/root/certs/privkey.pem",
+                            "sslCertificatePath": "/root/certs/fullchain.pem",
+                            "rateLimiter": {
+                                "timeWindowSeconds": 60,
+                                "maxRequests": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "network": {
+                "enabled": true,
+                "implementation": {
+                    "libp2p-service": {
+                        "enabled": true,
+                        "package": "./network/implementation/libp2p-service.js",
+                        "config": {
+                            "dht": {
+                                "kBucketSize": 20
+                            },
+                            "nat": {
+                                "enabled": false,
+                                "externalIp": null
+                            },
+                            "connectionManager": {
+                                "autoDial": true,
+                                "autoDialInterval": 10e3,
+                                "dialTimeout": 2e3
+                            },
+                            "peerRouting": {
+                                "refreshManager": {
+                                    "enabled": true,
+                                    "interval": 6e5,
+                                    "bootDelay": 2e3
+                                }
+                            },
+                            "port": 9000,
+                            "bootstrap": [
+                                "/ip4/0.0.0.0/tcp/9000/p2p/QmWyf3dtqJnhuCpzEDTNmNFYc5tjxTrXhGcUUmGHdg2gtj"
+                            ]
+                        }
+                    }
+                }
+            },
+            "validation": {
+                "enabled": true,
+                "implementation": {
+                    "enabled": true,
+                    "merkle-validation": {
+                        "package": "./validation/implementation/merkle-validation.js",
+                        "config": {}
+                    }
+                }
+            },
+            "repository": {
+                "enabled": true,
+                "implementation": {
+                    "sequelize-repository": {
+                        "enabled": true,
+                        "package": "./repository/implementation/sequelize/sequelize-repository.js",
+                        "config": {
+                            "database": "operationaldb",
+                            "user": "root",
+                            "password": "",
+                            "port": "3306",
+                            "host": "localhost",
+                            "dialect": "mysql",
+                            "logging": false,
+                            "pool": {
+                                "max": 120,
+                                "min": 0,
+                                "acquire": 60000,
+                                "idle": 10000,
+                                "evict": 1000
+                            }
+                        }
+                    }
+                }
+            },
+            "blockchain": {
+                "enabled": true,
+                "implementation": {
+                    "hardhat1:31337": {
+                        "enabled": true,
+                        "package": "./blockchain/implementation/hardhat/hardhat-service.js",
+                        "config": {
+                            "hubContractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                            "rpcEndpoints": ["http://localhost:8545"],
+                            "initialStakeAmount": 50000,
+                            "initialAskAmount": 0.2,
+                            "operatorFee": 0
+                        }
+                    },
+                    "hardhat2:31337": {
+                        "enabled": true,
+                        "package": "./blockchain/implementation/hardhat/hardhat-service.js",
+                        "config": {
+                            "hubContractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                            "rpcEndpoints": ["http://localhost:9545"],
+                            "initialStakeAmount": 50000,
+                            "initialAskAmount": 0.2,
+                            "operatorFee": 0
+                        }
+                    }
+                }
+            },
+            "tripleStore": {
+                "enabled": true,
+                "timeout": {
+                    "query": 60000,
+                    "get": 10000,
+                    "batchGet": 10000,
+                    "insert": 300000,
+                    "ask": 10000
+                },
+                "implementation": {
+                    "ot-blazegraph": {
+                        "enabled": true,
+                        "package": "./triple-store/implementation/ot-blazegraph/ot-blazegraph.js",
+                        "config": {}
+                    },
+                    "ot-neptune": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-neptune/ot-neptune.js",
+                        "config": {}
+                    }
+                }
+            },
+            "telemetry": {
+                "enabled": false,
+                "implementation": {
+                    "quest-telemetry": {
+                        "enabled": true,
+                        "package": "./telemetry/implementation/quest-telemetry.js",
+                        "config": {
+                            "localEndpoint": "http::addr=localhost:10000",
+                            "signalingServiceEndpoint": "",
+                            "sendToSignalingService": false
+                        }
+                    }
+                }
+            },
+            "blockchainEvents": {
+                "enabled": true,
+                "implementation": {
+                    "ot-ethers": {
+                        "enabled": true,
+                        "package": "./blockchain-events/implementation/ot-ethers/ot-ethers.js",
+                        "config": {
+                            "blockchains": ["hardhat1:31337", "hardhat2:31337"],
+                            "rpcEndpoints": {
+                                "hardhat1:31337": ["http://localhost:8545"],
+                                "hardhat2:31337": ["http://localhost:9545"]
+                            },
+                            "hubContractAddress": {
+                                "hardhat1:31337": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                                "hardhat2:31337": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "maximumAssertionSizeInKb": 500000,
+        "commandExecutorVerboseLoggingEnabled": false,
+        "appDataPath": "data",
+        "logging": {
+            "defaultLevel": "info",
+            "enableExperimentalScopes": true
+        },
+        "assetSync": {
+            "syncDKG": {
+                "enabled": false,
+                "syncBatchSize": 20,
+                "doneThreshold": 95
+            },
+            "syncParanets": []
+        },
+        "auth": {
+            "ipBasedAuthEnabled": true,
+            "tokenBasedAuthEnabled": false,
+            "loggingEnabled": true,
+            "ipWhitelist": ["::1", "127.0.0.1"],
+            "publicOperations": [],
+            "bothIpAndTokenAuthRequired": false
+        }
+    },
+    "testnet": {
+        "modules": {
+            "autoUpdater": {
+                "enabled": true,
+                "implementation": {
+                    "ot-auto-updater": {
+                        "enabled": true,
+                        "package": "./auto-updater/implementation/ot-auto-updater.js",
+                        "config": {
+                            "branch": "v6/release/testnet"
+                        }
+                    }
+                }
+            },
+            "network": {
+                "enabled": true,
+                "implementation": {
+                    "libp2p-service": {
+                        "enabled": true,
+                        "package": "./network/implementation/libp2p-service.js",
+                        "config": {
+                            "dht": {
+                                "kBucketSize": 20
+                            },
+                            "nat": {
+                                "enabled": true,
+                                "externalIp": null
+                            },
+                            "connectionManager": {
+                                "autoDial": true,
+                                "autoDialInterval": 10e3,
+                                "dialTimeout": 2e3
+                            },
+                            "peerRouting": {
+                                "refreshManager": {
+                                    "enabled": true,
+                                    "interval": 6e5,
+                                    "bootDelay": 2e3
+                                }
+                            },
+                            "port": 9000,
+                            "bootstrap": [
+                                "/ip4/164.92.138.30/tcp/9000/p2p/QmbiZQm18JefDizrQwbRhPgkaLykTLyrUEpeMWuKJHXuUM",
+                                "/ip4/139.59.145.152/tcp/9000/p2p/Qme2oF6afixBjLYjF5CYeC73d5dygsTq8P7BPQp31NVkye"
+                            ]
+                        }
+                    }
+                }
+            },
+            "httpClient": {
+                "enabled": true,
+                "implementation": {
+                    "express-http-client": {
+                        "enabled": true,
+                        "package": "./http-client/implementation/express-http-client.js",
+                        "config": {
+                            "useSsl": false,
+                            "port": 8900,
+                            "sslKeyPath": "/root/certs/privkey.pem",
+                            "sslCertificatePath": "/root/certs/fullchain.pem",
+                            "rateLimiter": {
+                                "timeWindowSeconds": 60,
+                                "maxRequests": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "repository": {
+                "enabled": true,
+                "implementation": {
+                    "sequelize-repository": {
+                        "enabled": true,
+                        "package": "./repository/implementation/sequelize/sequelize-repository.js",
+                        "config": {
+                            "database": "operationaldb",
+                            "user": "root",
+                            "password": "password",
+                            "port": "3306",
+                            "host": "localhost",
+                            "dialect": "mysql",
+                            "logging": false,
+                            "pool": {
+                                "max": 120,
+                                "min": 0,
+                                "acquire": 60000,
+                                "idle": 10000,
+                                "evict": 1000
+                            }
+                        }
+                    }
+                }
+            },
+            "blockchain": {
+                "enabled": true,
+                "implementation": {
+                    "otp:20430": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/ot-parachain/ot-parachain-service.js",
+                        "config": {
+                            "hubContractAddress": "0xe233b5b78853a62b1e11ebe88bf083e25b0a57a6",
+                            "rpcEndpoints": [
+                                "https://lofar-testnet.origin-trail.network",
+                                "https://lofar-testnet.origintrail.network"
+                            ],
+                            "operatorFee": 0
+                        }
+                    },
+                    "gnosis:10200": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/gnosis/gnosis-service.js",
+
+                        "config": {
+                            "hubContractAddress": "0x2c08AC4B630c009F709521e56Ac385A6af70650f",
+                            "gasPriceOracleLink": "https://blockscout.chiadochain.net/api/v1/gas-price-oracle",
+                            "rpcEndpoints": ["https://rpc.chiadochain.net"],
+                            "operatorFee": 0
+                        }
+                    },
+                    "base:84532": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/base/base-service.js",
+
+                        "config": {
+                            "hubContractAddress": "0xf21CE8f8b01548D97DCFb36869f1ccB0814a4e05",
+                            "rpcEndpoints": ["https://sepolia.base.org"],
+                            "operatorFee": 0
+                        }
+                    }
+                }
+            },
+            "validation": {
+                "enabled": true,
+                "implementation": {
+                    "merkle-validation": {
+                        "enabled": true,
+                        "package": "./validation/implementation/merkle-validation.js",
+                        "config": {}
+                    }
+                }
+            },
+            "tripleStore": {
+                "enabled": true,
+                "timeout": {
+                    "query": 60000,
+                    "get": 10000,
+                    "batchGet": 10000,
+                    "insert": 300000,
+                    "ask": 10000
+                },
+                "implementation": {
+                    "ot-blazegraph": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-blazegraph/ot-blazegraph.js",
+                        "config": {}
+                    },
+                    "ot-fuseki": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-fuseki/ot-fuseki.js",
+                        "config": {}
+                    },
+                    "ot-graphdb": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-graphdb/ot-graphdb.js",
+                        "config": {}
+                    },
+                    "ot-neptune": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-neptune/ot-neptune.js",
+                        "config": {}
+                    }
+                }
+            },
+            "telemetry": {
+                "enabled": false,
+                "implementation": {
+                    "quest-telemetry": {
+                        "enabled": true,
+                        "package": "./telemetry/implementation/quest-telemetry.js",
+                        "config": {
+                            "localEndpoint": "http::addr=localhost:10000",
+                            "signalingServiceEndpoint": "",
+                            "sendToSignalingService": false
+                        }
+                    }
+                }
+            },
+            "blockchainEvents": {
+                "enabled": true,
+                "implementation": {
+                    "ot-ethers": {
+                        "enabled": true,
+                        "package": "./blockchain-events/implementation/ot-ethers/ot-ethers.js",
+                        "config": {
+                            "blockchains": ["otp:20430", "gnosis:10200", "base:84532"],
+                            "rpcEndpoints": {
+                                "base:84532": ["https://sepolia.base.org"],
+                                "otp:20430": [
+                                    "https://lofar-testnet.origin-trail.network",
+                                    "https://lofar-testnet.origintrail.network"
+                                ],
+                                "gnosis:10200": ["https://rpc.chiadochain.net"]
+                            },
+                            "hubContractAddress": {
+                                "base:84532": "0xf21CE8f8b01548D97DCFb36869f1ccB0814a4e05",
+                                "otp:20430": "0xe233b5b78853a62b1e11ebe88bf083e25b0a57a6",
+                                "gnosis:10200": "0x2c08AC4B630c009F709521e56Ac385A6af70650f"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "maximumAssertionSizeInKb": 500000,
+        "commandExecutorVerboseLoggingEnabled": false,
+        "appDataPath": "data",
+        "logging": {
+            "defaultLevel": "trace",
+            "enableExperimentalScopes": true
+        },
+        "assetSync": {
+            "syncDKG": {
+                "enabled": false,
+                "syncBatchSize": 20,
+                "doneThreshold": 95
+            },
+            "syncParanets": []
+        },
+        "auth": {
+            "ipBasedAuthEnabled": true,
+            "tokenBasedAuthEnabled": false,
+            "loggingEnabled": true,
+            "ipWhitelist": ["::1", "127.0.0.1"],
+            "publicOperations": [],
+            "bothIpAndTokenAuthRequired": false
+        }
+    },
+    "devnet": {
+        "modules": {
+            "autoUpdater": {
+                "enabled": true,
+                "implementation": {
+                    "ot-auto-updater": {
+                        "enabled": true,
+                        "package": "./auto-updater/implementation/ot-auto-updater.js",
+                        "config": {
+                            "branch": "v8/develop"
+                        }
+                    }
+                }
+            },
+            "network": {
+                "enabled": true,
+                "implementation": {
+                    "libp2p-service": {
+                        "enabled": true,
+                        "package": "./network/implementation/libp2p-service.js",
+                        "config": {
+                            "dht": {
+                                "kBucketSize": 20
+                            },
+                            "nat": {
+                                "enabled": true,
+                                "externalIp": null
+                            },
+                            "connectionManager": {
+                                "autoDial": true,
+                                "autoDialInterval": 10e3,
+                                "dialTimeout": 2e3
+                            },
+                            "peerRouting": {
+                                "refreshManager": {
+                                    "enabled": true,
+                                    "interval": 6e5,
+                                    "bootDelay": 2e3
+                                }
+                            },
+                            "port": 9000,
+                            "bootstrap": [
+                                "/ip4/64.225.99.151/tcp/9000/p2p/QmawsTRqaLPyLQ5PfStpFcpQW4bvNQ59zV1by2G5aJHuVn"
+                            ]
+                        }
+                    }
+                }
+            },
+            "httpClient": {
+                "enabled": true,
+                "implementation": {
+                    "express-http-client": {
+                        "enabled": true,
+                        "package": "./http-client/implementation/express-http-client.js",
+                        "config": {
+                            "useSsl": false,
+                            "port": 8900,
+                            "sslKeyPath": "/root/certs/privkey.pem",
+                            "sslCertificatePath": "/root/certs/fullchain.pem",
+                            "rateLimiter": {
+                                "timeWindowSeconds": 60,
+                                "maxRequests": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "repository": {
+                "enabled": true,
+                "implementation": {
+                    "sequelize-repository": {
+                        "enabled": true,
+                        "package": "./repository/implementation/sequelize/sequelize-repository.js",
+                        "config": {
+                            "database": "operationaldb",
+                            "user": "root",
+                            "password": "password",
+                            "port": "3306",
+                            "host": "localhost",
+                            "dialect": "mysql",
+                            "logging": false,
+                            "pool": {
+                                "max": 120,
+                                "min": 0,
+                                "acquire": 60000,
+                                "idle": 10000,
+                                "evict": 1000
+                            }
+                        }
+                    }
+                }
+            },
+            "blockchain": {
+                "enabled": true,
+                "implementation": {
+                    "base:84532": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/base/base-service.js",
+
+                        "config": {
+                            "hubContractAddress": "0xE043daF4cC8ae2c720ef95fc82574a37a429c40A",
+                            "rpcEndpoints": ["https://sepolia.base.org"],
+                            "operatorFee": 0
+                        }
+                    }
+                }
+            },
+            "validation": {
+                "enabled": true,
+                "implementation": {
+                    "merkle-validation": {
+                        "enabled": true,
+                        "package": "./validation/implementation/merkle-validation.js",
+                        "config": {}
+                    }
+                }
+            },
+            "tripleStore": {
+                "enabled": true,
+                "timeout": {
+                    "query": 60000,
+                    "get": 10000,
+                    "batchGet": 10000,
+                    "insert": 300000,
+                    "ask": 10000
+                },
+                "implementation": {
+                    "ot-blazegraph": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-blazegraph/ot-blazegraph.js",
+                        "config": {}
+                    },
+                    "ot-fuseki": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-fuseki/ot-fuseki.js",
+                        "config": {}
+                    },
+                    "ot-graphdb": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-graphdb/ot-graphdb.js",
+                        "config": {}
+                    },
+                    "ot-neptune": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-neptune/ot-neptune.js",
+                        "config": {}
+                    }
+                }
+            },
+            "telemetry": {
+                "enabled": false,
+                "implementation": {
+                    "quest-telemetry": {
+                        "enabled": true,
+                        "package": "./telemetry/implementation/quest-telemetry.js",
+                        "config": {
+                            "localEndpoint": "http::addr=localhost:10000",
+                            "signalingServiceEndpoint": "",
+                            "sendToSignalingService": false
+                        }
+                    }
+                }
+            },
+            "blockchainEvents": {
+                "enabled": true,
+                "implementation": {
+                    "ot-ethers": {
+                        "enabled": true,
+                        "package": "./blockchain-events/implementation/ot-ethers/ot-ethers.js",
+                        "config": {
+                            "blockchains": ["base:84532"],
+                            "rpcEndpoints": {
+                                "base:84532": ["https://sepolia.base.org"]
+                            },
+                            "hubContractAddress": {
+                                "base:84532": "0xE043daF4cC8ae2c720ef95fc82574a37a429c40A"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "maximumAssertionSizeInKb": 500000,
+        "commandExecutorVerboseLoggingEnabled": false,
+        "appDataPath": "data",
+        "logging": {
+            "defaultLevel": "trace",
+            "enableExperimentalScopes": false
+        },
+        "assetSync": {
+            "syncDKG": {
+                "enabled": false,
+                "syncBatchSize": 20,
+                "doneThreshold": 95
+            },
+            "syncParanets": []
+        },
+        "auth": {
+            "ipBasedAuthEnabled": true,
+            "tokenBasedAuthEnabled": false,
+            "loggingEnabled": true,
+            "ipWhitelist": ["::1", "127.0.0.1"],
+            "publicOperations": [],
+            "bothIpAndTokenAuthRequired": false
+        }
+    },
+    "mainnet": {
+        "modules": {
+            "autoUpdater": {
+                "enabled": true,
+                "implementation": {
+                    "ot-auto-updater": {
+                        "enabled": true,
+                        "package": "./auto-updater/implementation/ot-auto-updater.js",
+                        "config": {
+                            "branch": "v6/release/mainnet"
+                        }
+                    }
+                }
+            },
+            "network": {
+                "enabled": true,
+                "implementation": {
+                    "libp2p-service": {
+                        "enabled": true,
+                        "package": "./network/implementation/libp2p-service.js",
+                        "config": {
+                            "dht": {
+                                "kBucketSize": 20
+                            },
+                            "nat": {
+                                "enabled": true,
+                                "externalIp": null
+                            },
+                            "connectionManager": {
+                                "autoDial": true,
+                                "autoDialInterval": 10e3,
+                                "dialTimeout": 2e3
+                            },
+                            "peerRouting": {
+                                "refreshManager": {
+                                    "enabled": true,
+                                    "interval": 6e5,
+                                    "bootDelay": 2e3
+                                }
+                            },
+                            "port": 9000,
+                            "bootstrap": [
+                                "/ip4/157.230.96.194/tcp/9000/p2p/QmZFcns6eGUosD96beHyevKu1jGJ1bA56Reg2f1J4q59Jt",
+                                "/ip4/18.132.135.102/tcp/9000/p2p/QmemqyXyvrTAm7PwrcTcFiEEFx69efdR92GSZ1oQprbdja"
+                            ]
+                        }
+                    }
+                }
+            },
+            "httpClient": {
+                "enabled": true,
+                "implementation": {
+                    "express-http-client": {
+                        "enabled": true,
+                        "package": "./http-client/implementation/express-http-client.js",
+                        "config": {
+                            "useSsl": false,
+                            "port": 8900,
+                            "sslKeyPath": "/root/certs/privkey.pem",
+                            "sslCertificatePath": "/root/certs/fullchain.pem",
+                            "rateLimiter": {
+                                "timeWindowSeconds": 60,
+                                "maxRequests": 10
+                            }
+                        }
+                    }
+                }
+            },
+            "repository": {
+                "enabled": true,
+                "implementation": {
+                    "sequelize-repository": {
+                        "enabled": true,
+                        "package": "./repository/implementation/sequelize/sequelize-repository.js",
+                        "config": {
+                            "database": "operationaldb",
+                            "user": "root",
+                            "password": "password",
+                            "port": "3306",
+                            "host": "localhost",
+                            "dialect": "mysql",
+                            "logging": false,
+                            "pool": {
+                                "max": 120,
+                                "min": 0,
+                                "acquire": 60000,
+                                "idle": 10000,
+                                "evict": 1000
+                            }
+                        }
+                    }
+                }
+            },
+            "blockchain": {
+                "enabled": true,
+                "defaultImplementation": "otp:2043",
+                "implementation": {
+                    "otp:2043": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/ot-parachain/ot-parachain-service.js",
+                        "config": {
+                            "hubContractAddress": "0x0957e25BD33034948abc28204ddA54b6E1142D6F",
+                            "rpcEndpoints": [
+                                "https://astrosat-parachain-rpc.origin-trail.network",
+                                "https://astrosat.origintrail.network/",
+                                "https://astrosat-2.origintrail.network/"
+                            ],
+                            "operatorFee": 0
+                        }
+                    },
+                    "gnosis:100": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/gnosis/gnosis-service.js",
+                        "config": {
+                            "hubContractAddress": "0x882D0BF07F956b1b94BBfe9E77F47c6fc7D4EC8f",
+                            "gasPriceOracleLink": "https://gnosis.blockscout.com/api/v1/gas-price-oracle",
+                            "operatorFee": 0
+                        }
+                    },
+                    "base:8453": {
+                        "enabled": false,
+                        "package": "./blockchain/implementation/base/base-service.js",
+
+                        "config": {
+                            "hubContractAddress": "0x99Aa571fD5e681c2D27ee08A7b7989DB02541d13",
+                            "operatorFee": 0
+                        }
+                    }
+                }
+            },
+            "tripleStore": {
+                "enabled": true,
+                "timeout": {
+                    "query": 60000,
+                    "get": 10000,
+                    "batchGet": 10000,
+                    "insert": 300000,
+                    "ask": 10000
+                },
+                "implementation": {
+                    "ot-blazegraph": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-blazegraph/ot-blazegraph.js",
+                        "config": {}
+                    },
+                    "ot-fuseki": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-fuseki/ot-fuseki.js",
+                        "config": {}
+                    },
+                    "ot-graphdb": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-graphdb/ot-graphdb.js",
+                        "config": {}
+                    },
+                    "ot-neptune": {
+                        "enabled": false,
+                        "package": "./triple-store/implementation/ot-neptune/ot-neptune.js",
+                        "config": {}
+                    }
+                }
+            },
+            "validation": {
+                "enabled": true,
+                "implementation": {
+                    "merkle-validation": {
+                        "enabled": true,
+                        "package": "./validation/implementation/merkle-validation.js",
+                        "config": {}
+                    }
+                }
+            },
+            "telemetry": {
+                "enabled": false,
+                "implementation": {
+                    "quest-telemetry": {
+                        "enabled": true,
+                        "package": "./telemetry/implementation/quest-telemetry.js",
+                        "config": {
+                            "localEndpoint": "http::addr=localhost:10000",
+                            "signalingServiceEndpoint": "",
+                            "sendToSignalingService": false
+                        }
+                    }
+                }
+            },
+            "blockchainEvents": {
+                "enabled": true,
+                "implementation": {
+                    "ot-ethers": {
+                        "enabled": true,
+                        "package": "./blockchain-events/implementation/ot-ethers/ot-ethers.js",
+                        "config": {
+                            "blockchains": ["otp:2043", "gnosis:100", "base:8453"],
+                            "rpcEndpoints": {
+                                "otp:2043": [
+                                    "https://astrosat-parachain-rpc.origin-trail.network",
+                                    "https://astrosat.origintrail.network/",
+                                    "https://astrosat-2.origintrail.network/"
+                                ]
+                            },
+                            "hubContractAddress": {
+                                "otp:2043": "0x0957e25BD33034948abc28204ddA54b6E1142D6F",
+                                "gnosis:100": "0x882D0BF07F956b1b94BBfe9E77F47c6fc7D4EC8f",
+                                "base:8453": "0x99Aa571fD5e681c2D27ee08A7b7989DB02541d13"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "maximumAssertionSizeInKb": 500000,
+        "commandExecutorVerboseLoggingEnabled": false,
+        "appDataPath": "data",
+        "logging": {
+            "defaultLevel": "trace",
+            "enableExperimentalScopes": false
+        },
+        "assetSync": {
+            "syncDKG": {
+                "enabled": false,
+                "syncBatchSize": 20,
+                "doneThreshold": 95
+            },
+            "syncParanets": []
+        },
+        "auth": {
+            "ipBasedAuthEnabled": true,
+            "tokenBasedAuthEnabled": false,
+            "loggingEnabled": true,
+            "ipWhitelist": ["::1", "127.0.0.1"],
+            "publicOperations": [],
+            "bothIpAndTokenAuthRequired": false
+        }
+    }
+}

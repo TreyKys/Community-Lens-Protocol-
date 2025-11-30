@@ -1,0 +1,16 @@
+#/lib/systemd/system/otnode.service
+
+[Unit]
+Description=OriginTrail V8 Node
+Documentation=https://github.com/OriginTrail/ot-node/
+After=network.target graphdb.service blazegraph.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ot-node/current
+ExecStart=/usr/bin/node /root/ot-node/current/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

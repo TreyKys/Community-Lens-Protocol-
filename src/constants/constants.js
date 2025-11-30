@@ -1,0 +1,1110 @@
+import { BigNumber, ethers } from 'ethers';
+import { createRequire } from 'module';
+
+export const WS_RPC_PROVIDER_PRIORITY = 2;
+
+export const HTTP_RPC_PROVIDER_PRIORITY = 1;
+
+export const FALLBACK_PROVIDER_QUORUM = 1;
+
+export const PUBLISH_BATCH_SIZE = 20;
+
+export const PUBLISH_MIN_NUM_OF_NODE_REPLICATIONS = 3;
+
+export const GET_BATCH_SIZE = 2;
+
+export const GET_MIN_NUM_OF_NODE_REPLICATIONS = 1;
+
+export const FINALITY_BATCH_SIZE = 1;
+
+export const FINALITY_MIN_NUM_OF_NODE_REPLICATIONS = 1;
+
+export const ASK_BATCH_SIZE = 20;
+
+export const RPC_PROVIDER_STALL_TIMEOUT = 60 * 1000;
+
+export const SIX_HOURS_IN_MS = 6 * 60 * 60 * 1000;
+
+export const UINT256_MAX_BN = ethers.constants.MaxUint256;
+
+export const UINT128_MAX_BN = BigNumber.from(2).pow(128).sub(1);
+
+export const UINT64_MAX_BN = BigNumber.from(2).pow(64).sub(1);
+
+export const UINT40_MAX_BN = BigNumber.from(2).pow(40).sub(1);
+
+export const UINT32_MAX_BN = BigNumber.from(2).pow(32).sub(1);
+
+export const ONE_ETHER = BigNumber.from('1000000000000000000');
+
+export const HASH_RING_SIZE = ethers.constants.MaxUint256;
+
+export const STAKE_UINT256_MULTIPLIER_BN = UINT256_MAX_BN.div(500000000);
+
+export const UINT256_UINT32_DIVISOR_BN = UINT256_MAX_BN.div(UINT32_MAX_BN);
+
+export const ZERO_PREFIX = '0x';
+
+export const ZERO_BYTES32 = ethers.constants.HashZero;
+
+export const ZERO_ADDRESS = ethers.constants.AddressZero;
+
+export const SCHEMA_CONTEXT = 'http://schema.org/';
+
+export const PRIVATE_ASSERTION_PREDICATE =
+    'https://ontology.origintrail.io/dkg/1.0#privateMerkleRoot';
+
+export const TRIPLE_ANNOTATION_LABEL_PREDICATE = 'https://ontology.origintrail.io/dkg/1.0#label';
+
+export const PRIVATE_RESOURCE_PREDICATE =
+    'https://ontology.origintrail.io/dkg/1.0#representsPrivateResource';
+
+export const DKG_METADATA_PREDICATES = {
+    PUBLISHED_BY: 'https://ontology.origintrail.io/dkg/1.0#publishedBy',
+    PUBLISHED_AT_BLOCK: 'https://ontology.origintrail.io/dkg/1.0#publishedAtBlock',
+    PUBLISH_TX: 'https://ontology.origintrail.io/dkg/1.0#publishTx',
+    PUBLISH_TIME: 'https://ontology.origintrail.io/dkg/1.0#publishTime',
+    BLOCK_TIME: 'https://ontology.origintrail.io/dkg/1.0#blockTime',
+};
+
+export const PRIVATE_HASH_SUBJECT_PREFIX = 'https://ontology.origintrail.io/dkg/1.0#metadata-hash:';
+
+export const UAL_PREDICATE = '<https://ontology.origintrail.io/dkg/1.0#UAL>';
+
+export const COMMIT_BLOCK_DURATION_IN_BLOCKS = 5;
+
+export const COMMITS_DELAY_BETWEEN_NODES_IN_BLOCKS = 5;
+
+export const TRANSACTION_POLLING_TIMEOUT_MILLIS = 300 * 1000;
+
+export const SOLIDITY_ERROR_STRING_PREFIX = '0x08c379a0';
+
+export const SOLIDITY_PANIC_CODE_PREFIX = '0x4e487b71';
+
+export const SOLIDITY_PANIC_REASONS = {
+    0x1: 'Assertion error',
+    0x11: 'Arithmetic operation underflowed or overflowed outside of an unchecked block',
+    0x12: 'Division or modulo division by zero',
+    0x21: 'Tried to convert a value into an enum, but the value was too big or negative',
+    0x22: 'Incorrectly encoded storage byte array',
+    0x31: '.pop() was called on an empty array',
+    0x32: 'Array accessed at an out-of-bounds or negative index',
+    0x41: 'Too much memory was allocated, or an array was created that is too large',
+    0x51: 'Called a zero-initialized variable of internal function type',
+};
+
+export const LIBP2P_KEY_DIRECTORY = 'libp2p';
+
+export const LIBP2P_KEY_FILENAME = 'privateKey';
+
+export const BLS_KEY_DIRECTORY = 'bls';
+
+export const BLS_KEY_FILENAME = 'secretKey';
+
+export const TRIPLE_STORE_CONNECT_MAX_RETRIES = 10;
+
+export const COMMAND_PRIORITY = {
+    HIGHEST: 0,
+    HIGH: 1,
+    MEDIUM: 5,
+    LOW: 10,
+    LOWEST: 20,
+};
+
+export const DEFAULT_COMMAND_PRIORITY = COMMAND_PRIORITY.MEDIUM;
+
+export const DEFAULT_BLOCKCHAIN_EVENT_SYNC_PERIOD_IN_MILLS = 15 * 24 * 60 * 60 * 1000; // 15 days
+
+export const MAX_BLOCKCHAIN_EVENT_SYNC_OF_HISTORICAL_BLOCKS_IN_MILLS = 60 * 60 * 1000; // 1 hour
+
+export const MAXIMUM_NUMBERS_OF_BLOCKS_TO_FETCH = 50;
+
+export const TRANSACTION_QUEUE_CONCURRENCY = 1;
+
+export const TRIPLE_STORE_CONNECT_RETRY_FREQUENCY = 10;
+
+export const MAX_FILE_SIZE = 10000000;
+
+export const GET_STATES = { LATEST: 'LATEST', FINALIZED: 'LATEST_FINALIZED' };
+
+export const BYTES_IN_KILOBYTE = 1024;
+
+export const BYTES_IN_MEGABYTE = BYTES_IN_KILOBYTE * BYTES_IN_KILOBYTE;
+
+export const PUBLISH_TYPES = { ASSERTION: 'assertion', ASSET: 'asset', INDEX: 'index' };
+
+export const DEFAULT_GET_STATE = GET_STATES.LATEST;
+
+export const PEER_OFFLINE_LIMIT = 24 * 60 * 60 * 1000;
+
+export const CONTENT_ASSET_HASH_FUNCTION_ID = 1;
+
+export const CHUNK_BYTE_SIZE = 32;
+
+export const PARANET_SYNC_KA_COUNT = 50;
+export const PARANET_SYNC_RETRIES_LIMIT = 3;
+export const PARANET_SYNC_RETRY_DELAY_MS = 60 * 1000;
+
+export const PARANET_ACCESS_POLICY = {
+    OPEN: 0,
+    PERMISSIONED: 1,
+};
+
+export const TRIPLE_STORE_REPOSITORIES = {
+    DKG: 'dkg',
+    PUBLIC_CURRENT: 'publicCurrent',
+    PRIVATE_CURRENT: 'privateCurrent',
+};
+
+export const BASE_NAMED_GRAPHS = {
+    UNIFIED: 'unified:graph',
+    HISTORICAL_UNIFIED: 'historical-unified:graph',
+    METADATA: 'metadata:graph',
+    CURRENT: 'current:graph',
+};
+
+export const REQUIRED_MODULES = [
+    'repository',
+    'httpClient',
+    'network',
+    'validation',
+    'blockchain',
+    'tripleStore',
+    'blockchainEventsService',
+];
+
+/**
+ * Triple store media types
+ * @type {{APPLICATION_JSON: string, N_QUADS: string, SPARQL_RESULTS_JSON: string, LD_JSON: string}}
+ */
+export const MEDIA_TYPES = {
+    LD_JSON: 'application/ld+json',
+    N_QUADS: 'application/n-quads',
+    SPARQL_RESULTS_JSON: 'application/sparql-results+json',
+    JSON: 'application/json',
+};
+
+/**
+ * XML data types
+ * @type {{FLOAT: string, DECIMAL: string, DOUBLE: string, BOOLEAN: string, INTEGER: string}}
+ */
+export const XML_DATA_TYPES = {
+    DECIMAL: 'http://www.w3.org/2001/XMLSchema#decimal',
+    FLOAT: 'http://www.w3.org/2001/XMLSchema#float',
+    DOUBLE: 'http://www.w3.org/2001/XMLSchema#double',
+    INTEGER: 'http://www.w3.org/2001/XMLSchema#integer',
+    BOOLEAN: 'http://www.w3.org/2001/XMLSchema#boolean',
+};
+
+export const MIN_NODE_VERSION = 16;
+
+export const NETWORK_API_RATE_LIMIT = {
+    TIME_WINDOW_MILLS: 1 * 60 * 1000,
+    MAX_NUMBER: 100,
+};
+
+export const NETWORK_API_SPAM_DETECTION = {
+    TIME_WINDOW_MILLS: 1 * 60 * 1000,
+    MAX_NUMBER: 150,
+};
+
+export const NETWORK_API_BLACK_LIST_TIME_WINDOW_MINUTES = 60;
+
+export const HIGH_TRAFFIC_OPERATIONS_NUMBER_PER_HOUR = 16000;
+
+export const SHARDING_TABLE_CHECK_COMMAND_FREQUENCY_MILLS = 10 * 1000; // 10 seconds
+
+export const PARANET_SYNC_FREQUENCY_MILLS = 1 * 60 * 1000;
+
+export const SEND_TELEMETRY_COMMAND_FREQUENCY_MINUTES = 15;
+
+export const PEER_RECORD_UPDATE_DELAY = 30 * 60 * 1000; // 30 minutes
+
+export const DEFAULT_COMMAND_CLEANUP_TIME_MILLS = 4 * 24 * 60 * 60 * 1000;
+
+export const REMOVE_SESSION_COMMAND_DELAY = 2 * 60 * 1000;
+
+export const OPERATION_IDS_COMMAND_CLEANUP_TIME_MILLS = 24 * 60 * 60 * 1000;
+
+export const GET_LATEST_SERVICE_AGREEMENT_FREQUENCY_MILLS = 30 * 1000;
+
+export const DIAL_PEERS_COMMAND_FREQUENCY_MILLS = 30 * 1000;
+
+export const DIAL_PEERS_CONCURRENCY = 10;
+
+export const MIN_DIAL_FREQUENCY_MILLIS = 60 * 60 * 1000;
+
+export const PERMANENT_COMMANDS = [
+    'eventListenerCommand',
+    'otnodeUpdateCommand',
+    'sendTelemetryCommand',
+    'startParanetSyncCommands',
+    'dialPeersCommand',
+    'shardingTableCheckCommand',
+    'commandsCleanerCommand',
+    'operationIdCleanerCommand',
+    'blockchainEventCleanerCommand',
+    'getCleanerCommand',
+    'getResponseCleanerCommand',
+    'publishCleanerCommand',
+    'publishResponseCleanerCommand',
+    'pendingStorageCleanerCommand',
+    'finalityCleanerCommand',
+    'finalityResponseCleanerCommand',
+    'askCleanerCommand',
+    'askResponseCleanerCommand',
+    'batchGetCleanerCommand',
+];
+
+export const MAX_COMMAND_DELAY_IN_MILLS = 14400 * 60 * 1000; // 10 days
+
+export const DEFAULT_COMMAND_REPEAT_INTERVAL_IN_MILLS = 5000; // 5 seconds
+
+export const DEFAULT_COMMAND_DELAY_IN_MILLS = 60 * 1000; // 60 seconds
+
+export const TRANSACTION_PRIORITY = {
+    HIGHEST: 0,
+    HIGH: 1,
+    MEDIUM: 5,
+    LOW: 10,
+    LOWEST: 20,
+};
+
+export const V0_PRIVATE_ASSERTION_PREDICATE =
+    'https://ontology.origintrail.io/dkg/1.0#privateAssertionID';
+
+export const DKG_PREDICATE = 'https://ontology.origintrail.io/dkg/1.0#';
+export const HAS_NAMED_GRAPH_SUFFIX = 'hasNamedGraph';
+export const HAS_KNOWLEDGE_ASSET_SUFFIX = 'hasKnowledgeAsset';
+
+const require = createRequire(import.meta.url);
+
+export const ABIs = {
+    KnowledgeCollection: require('dkg-evm-module/abi/KnowledgeCollection.json'),
+    KnowledgeCollectionStorage: require('dkg-evm-module/abi/KnowledgeCollectionStorage.json'),
+    Staking: require('dkg-evm-module/abi/Staking.json'),
+    Token: require('dkg-evm-module/abi/Token.json'),
+    Hub: require('dkg-evm-module/abi/Hub.json'),
+    IdentityStorage: require('dkg-evm-module/abi/IdentityStorage.json'),
+    ParametersStorage: require('dkg-evm-module/abi/ParametersStorage.json'),
+    Profile: require('dkg-evm-module/abi/Profile.json'),
+    ProfileStorage: require('dkg-evm-module/abi/ProfileStorage.json'),
+    ShardingTable: require('dkg-evm-module/abi/ShardingTable.json'),
+    ShardingTableStorage: require('dkg-evm-module/abi/ShardingTableStorage.json'),
+    ParanetsRegistry: require('dkg-evm-module/abi/ParanetsRegistry.json'),
+    ParanetKnowledgeCollectionsRegistry: require('dkg-evm-module/abi/ParanetKnowledgeCollectionsRegistry.json'),
+    AskStorage: require('dkg-evm-module/abi/AskStorage.json'),
+    Chronos: require('dkg-evm-module/abi/Chronos.json'),
+    Paranet: require('dkg-evm-module/abi/Paranet.json'),
+    RandomSampling: require('dkg-evm-module/abi/RandomSampling.json'),
+    RandomSamplingStorage: require('dkg-evm-module/abi/RandomSamplingStorage.json'),
+    DelegatorsInfo: require('dkg-evm-module/abi/DelegatorsInfo.json'),
+};
+
+export const CONTRACT_FUNCTION_PRIORITY = {};
+
+export const COMMAND_RETRIES = {};
+
+export const SIMPLE_ASSET_SYNC_PARAMETERS = {
+    GET_RESULT_POLLING_INTERVAL_MILLIS: 1 * 1000,
+    GET_RESULT_POLLING_MAX_ATTEMPTS: 30,
+};
+
+export const PARANET_SYNC_PARAMETERS = {
+    GET_RESULT_POLLING_INTERVAL_MILLIS: 1 * 1000,
+    GET_RESULT_POLLING_MAX_ATTEMPTS: 300,
+};
+
+export const COMMAND_TX_GAS_INCREASE_FACTORS = {
+    SUBMIT_COMMIT: 1.2,
+    SUBMIT_UPDATE_COMMIT: 1.2,
+    SUBMIT_PROOFS: 1.2,
+};
+
+export const MIGRATION_FLAG_PATH = '.enrichment_migration_done_dkg';
+
+export const CONTRACT_FUNCTION_GAS_LIMIT_INCREASE_FACTORS = {};
+
+export const GNOSIS_DEFAULT_GAS_PRICE = {
+    TESTNET: 1,
+    MAINNET: 1,
+};
+
+export const NEURO_DEFAULT_GAS_PRICE = {
+    TESTNET: 8,
+    MAINNET: 8,
+};
+
+export const CONTRACT_FUNCTION_FIXED_GAS_PRICE = {};
+
+export const WEBSOCKET_PROVIDER_OPTIONS = {
+    reconnect: {
+        auto: true,
+        delay: 1000, // ms
+        maxAttempts: 3,
+    },
+    clientConfig: {
+        keepalive: true,
+        keepaliveInterval: 30 * 1000, // ms
+    },
+};
+
+export const TRIPLE_STORE_IMPLEMENTATION = {
+    BLAZEGRAPH: 'Blazegraph',
+    GRAPHDB: 'GraphDB',
+    FUSEKI: 'Fuseki',
+    NEPTUNE: 'Neptune',
+};
+
+export const NETWORK_MESSAGE_TYPES = {
+    REQUESTS: {
+        PROTOCOL_REQUEST: 'PROTOCOL_REQUEST',
+    },
+    RESPONSES: {
+        ACK: 'ACK',
+        NACK: 'NACK',
+        BUSY: 'BUSY',
+    },
+};
+
+export const PARANET_NODES_ACCESS_POLICIES = ['OPEN', 'PERMISSIONED'];
+
+export const NETWORK_MESSAGE_TIMEOUT_MILLS = {
+    PUBLISH: {
+        REQUEST: 15 * 1000,
+    },
+    UPDATE: {
+        REQUEST: 60 * 1000,
+    },
+    GET: {
+        REQUEST: 15 * 1000,
+    },
+    ASK: {
+        REQUEST: 60 * 1000,
+    },
+    FINALITY: {
+        REQUEST: 60 * 1000,
+    },
+    BATCH_GET: {
+        REQUEST: 30 * 1000,
+    },
+};
+
+export const MAX_OPEN_SESSIONS = 10;
+
+export const ERROR_TYPE = {
+    EVENT_LISTENER_ERROR: 'EventListenerError',
+    BLOCKCHAIN_EVENT_LISTENER_ERROR: 'BlockchainEventListenerError',
+    DIAL_PROTOCOL_ERROR: 'DialProtocolError',
+    VALIDATE_ASSET_ERROR: 'ValidateAssetError',
+    NETWORK_PROTOCOL_ERROR: 'NetworkProtocolError',
+    PUBLISH: {
+        PUBLISH_START_ERROR: 'PublishStartError',
+        PUBLISH_ROUTE_ERROR: 'PublishRouteError',
+        PUBLISH_NETWORK_START_ERROR: 'PublishNetworkStartError',
+        PUBLISH_VALIDATE_ASSET_ERROR: 'PublishValidateAssetError',
+        PUBLISH_LOCAL_STORE_ERROR: 'PublishLocalStoreError',
+        PUBLISH_LOCAL_STORE_REMOTE_ERROR: 'PublishLocalStoreRemoteError',
+        PUBLISH_FIND_NODES_ERROR: 'PublishFindNodesError',
+        PUBLISH_STORE_REQUEST_ERROR: 'PublishStoreRequestError',
+        PUBLISH_VALIDATE_ASSERTION_METADATA_ERROR: 'PublishValidateAssertionMetadataError',
+        PUBLISH_ERROR: 'PublishError',
+    },
+    STORE_ASSERTION_ERROR: 'StoreAssertionError',
+    UPDATE: {
+        UPDATE_INIT_ERROR: 'UpdateInitError',
+        UPDATE_REQUEST_ERROR: 'UpdateRequestError',
+        UPDATE_START_ERROR: 'UpdateStartError',
+        UPDATE_ROUTE_ERROR: 'UpdateRouteError',
+        UPDATE_LOCAL_STORE_ERROR: 'UpdateLocalStoreError',
+        UPDATE_LOCAL_STORE_REMOTE_ERROR: 'UpdateLocalStoreRemoteError',
+        UPDATE_ERROR: 'UpdateError',
+        UPDATE_STORE_INIT_ERROR: 'UpdateStoreInitError',
+        UPDATE_REMOTE_ERROR: 'UpdateRemoteError',
+        UPDATE_DELETE_PENDING_STATE_ERROR: 'UpdateDeletePendingStateError',
+        UPDATE_VALIDATE_ASSET_ERROR: 'UpdateValidateAssetError',
+        UPDATE_STORE_REQUEST_ERROR: 'UpdateStoreRequestError',
+        UPDATE_VALIDATE_ASSERTION_METADATA_ERROR: 'UpadateValidateAssertionMetadataError',
+        UPDATE_ASSERTION_ERROR: 'UpdateAssertionError',
+        UPDATE_NETWORK_START_ERROR: 'UpdateNetworkStartError',
+    },
+    GET: {
+        GET_ROUTE_ERROR: 'GetRouteError',
+        GET_ASSERTION_ID_ERROR: 'GetAssertionIdError',
+        GET_PRIVATE_ASSERTION_ID_ERROR: 'GetPrivateAssertionIdError',
+        GET_VALIDATE_ASSET_ERROR: 'GetValidateAssetError',
+        GET_LOCAL_ERROR: 'GetLocalError',
+        GET_NETWORK_ERROR: 'GetNetworkError',
+        GET_CURATED_PARANET_NETWORK_ERROR: 'GetCuratedParanetNetworkError',
+        GET_START_ERROR: 'GetStartError',
+        GET_INIT_ERROR: 'GetInitError',
+        GET_REQUEST_ERROR: 'GetRequestError',
+        GET_INIT_REMOTE_ERROR: 'GetInitRemoteError',
+        GET_REQUEST_REMOTE_ERROR: 'GetRequestRemoteError',
+        GET_ERROR: 'GetError',
+    },
+    BATCH_GET: {
+        BATCH_GET_ERROR: 'BatchGetError',
+    },
+    LOCAL_STORE: {
+        LOCAL_STORE_ERROR: 'LocalStoreError',
+    },
+    QUERY: {
+        LOCAL_QUERY_ERROR: 'LocalQueryError',
+    },
+    GET_BID_SUGGESTION: {
+        UNSUPPORTED_BID_SUGGESTION_RANGE_ERROR: 'UnsupportedBidSuggestionRangeError',
+    },
+    PARANET: {
+        START_PARANET_SYNC_ERROR: 'StartParanetSyncError',
+        PARANET_SYNC_ERROR: 'ParanetSyncError',
+    },
+    FIND_SHARD: {
+        FIND_SHARD_ERROR: 'FindShardError',
+        PUBLISH_FIND_SHARD_ERROR: 'PublishFindShardError',
+        UPDATE_FIND_SHARD_ERROR: 'UpdateFindShardError',
+        GET_FIND_SHARD_ERROR: 'GetFindShardError',
+        BATCH_GET_FIND_SHARD_ERROR: 'BatchGetFindShardError',
+    },
+    ASK: {
+        ASK_ERROR: 'AskError',
+        ASK_NETWORK_ERROR: 'AskNetworkError',
+        ASK_REQUEST_ERROR: 'AskRequestError',
+        ASK_REQUEST_REMOTE_ERROR: 'AskRequestRemoteError',
+        ASK_FIND_SHARD_ERROR: 'AskFindShardError',
+    },
+    PUBLISH_FINALIZATION: {
+        PUBLISH_FINALIZATION_NO_CACHED_DATA: 'PublishFinalizationNoCachedData',
+    },
+    UPDATE_FINALIZATION: {
+        UPDATE_FINALIZATION_NO_CACHED_DATA: 'UpdateFinalizationNoCachedData',
+        UPDATE_FINALIZATION_NO_OLD_DATA: 'UpdateFinalizationNoOldData',
+    },
+    FINALITY: {
+        FINALITY_ERROR: 'FinalityError',
+        FINALITY_NETWORK_ERROR: 'FinalityNetworkError',
+        FINALITY_REQUEST_ERROR: 'FinalityRequestError',
+        FINALITY_REQUEST_REMOTE_ERROR: 'FinalityRequestRemoteError',
+        FINALITY_START_ERROR: 'FinalityStartError',
+    },
+};
+export const OPERATION_ID_STATUS = {
+    PENDING: 'PENDING',
+    FAILED: 'FAILED',
+    COMPLETED: 'COMPLETED',
+    FIND_NODES_START: 'FIND_NODES_START',
+    FIND_NODES_END: 'FIND_NODES_END',
+    FIND_CURATED_PARANET_NODES_START: 'FIND_CURATED_PARANET_NODES_START',
+    FIND_CURATED_PARANET_NODES_END: 'FIND_CURATED_PARANET_NODES_END',
+    DIAL_PROTOCOL_START: 'DIAL_PROTOCOL_START',
+    DIAL_PROTOCOL_END: 'DIAL_PROTOCOL_END',
+    VALIDATE_ASSET_START: 'VALIDATE_ASSET_START',
+    VALIDATE_ASSET_END: 'VALIDATE_ASSET_END',
+    VALIDATE_ASSET_BLOCKCHAIN_START: 'VALIDATE_ASSET_BLOCKCHAIN_START',
+    VALIDATE_ASSET_BLOCKCHAIN_END: 'VALIDATE_ASSET_BLOCKCHAIN_END',
+    VALIDATE_ASSERTION_METADATA_START: 'VALIDATE_ASSERTION_METADATA_START',
+    VALIDATE_ASSERTION_METADATA_END: 'VALIDATE_ASSERTION_METADATA_END',
+    PROTOCOL_SCHEDULE_MESSAGE_START: 'PROTOCOL_SCHEDULE_MESSAGE_START',
+    PROTOCOL_SCHEDULE_MESSAGE_END: 'PROTOCOL_SCHEDULE_MESSAGE_END',
+    HANDLE_PROTOCOL_MESSAGE_START: 'HANDLE_PROTOCOL_MESSAGE_START',
+    HANDLE_PROTOCOL_MESSAGE_END: 'HANDLE_PROTOCOL_MESSAGE_END',
+    PUBLISH_LOCAL_STORE_REMOTE_SEND_MESSAGE_RESPONSE_START:
+        'PUBLISH_LOCAL_STORE_REMOTE_SEND_MESSAGE_RESPONSE_START',
+    PUBLISH_LOCAL_STORE_REMOTE_SEND_MESSAGE_RESPONSE_END:
+        'PUBLISH_LOCAL_STORE_REMOTE_SEND_MESSAGE_RESPONSE_END',
+    PUBLISH: {
+        VALIDATING_PUBLISH_ASSERTION_REMOTE_START: 'VALIDATING_PUBLISH_ASSERTION_REMOTE_START',
+        VALIDATING_PUBLISH_ASSERTION_REMOTE_END: 'VALIDATING_PUBLISH_ASSERTION_REMOTE_END',
+        PUBLISH_VALIDATE_ASSET_START: 'PUBLISH_VALIDATE_ASSET_START',
+        PUBLISH_VALIDATE_ASSET_END: 'PUBLISH_VALIDATE_ASSET_END',
+        PUBLISH_VALIDATE_ASSET_PARANET_EXISTS_START: 'PUBLISH_VALIDATE_ASSET_PARANET_EXISTS_START',
+        PUBLISH_VALIDATE_ASSET_PARANET_EXISTS_END: 'PUBLISH_VALIDATE_ASSET_PARANET_EXISTS_END',
+        PUBLISH_VALIDATE_ASSET_NODES_ACCESS_POLICY_CHECK_START:
+            'PUBLISH_VALIDATE_ASSET_NODES_ACCESS_POLICY_CHECK_START',
+        PUBLISH_VALIDATE_ASSET_NODES_ACCESS_POLICY_CHECK_END:
+            'PUBLISH_VALIDATE_ASSET_NODES_ACCESS_POLICY_CHECK_END',
+        INSERTING_ASSERTION: 'INSERTING_ASSERTION',
+        PUBLISHING_ASSERTION: 'PUBLISHING_ASSERTION',
+        PUBLISH_START: 'PUBLISH_START',
+        PUBLISH_INIT_START: 'PUBLISH_INIT_START',
+        PUBLISH_INIT_END: 'PUBLISH_INIT_END',
+        PUBLISH_LOCAL_STORE_REMOTE_CACHE_DATASET_START:
+            'PUBLISH_LOCAL_STORE_REMOTE_CACHE_DATASET_START',
+        PUBLISH_LOCAL_STORE_REMOTE_CACHE_DATASET_END:
+            'PUBLISH_LOCAL_STORE_REMOTE_CACHE_DATASET_END',
+        PUBLISH_REPLICATE_START: 'PUBLISH_REPLICATE_START',
+        PUBLISH_REPLICATE_END: 'PUBLISH_REPLICATE_END',
+        PUBLISH_FIND_NODES_START: 'PUBLISH_FIND_NODES_START',
+        PUBLISH_FIND_NODES_END: 'PUBLISH_FIND_NODES_END',
+        PUBLISH_END: 'PUBLISH_END',
+        PUBLISH_LOCAL_STORE_REMOTE_START: 'PUBLISH_LOCAL_STORE_REMOTE_START',
+        PUBLISH_LOCAL_STORE_REMOTE_END: 'PUBLISH_LOCAL_STORE_REMOTE_END',
+        PUBLISH_VALIDATE_ASSET_REMOTE_START: 'VALIDATE_ASSET_REMOTE_START',
+        PUBLISH_VALIDATE_ASSET_REMOTE_END: 'VALIDATE_ASSET_REMOTE_END',
+        PUBLISH_FAILED: 'PUBLISH_FAILED',
+    },
+    PUBLISH_FINALIZATION: {
+        PUBLISH_FINALIZATION_START: 'PUBLISH_FINALIZATION_START',
+        PUBLISH_FINALIZATION_METADATA_VALIDATION_START:
+            'PUBLISH_FINALIZATION_METADATA_VALIDATION_START',
+        PUBLISH_FINALIZATION_METADATA_VALIDATION_END:
+            'PUBLISH_FINALIZATION_METADATA_VALIDATION_END',
+        PUBLISH_FINALIZATION_STORE_ASSERTION_START: 'PUBLISH_FINALIZATION_STORE_ASSERTION_START',
+        PUBLISH_FINALIZATION_STORE_ASSERTION_END: 'PUBLISH_FINALIZATION_STORE_ASSERTION_END',
+        PUBLISH_FINALIZATION_END: 'PUBLISH_FINALIZATION_END',
+        PUBLISH_FINALIZATION_FAILED: 'PUBLISH_FINALIZATION_FAILED',
+    },
+    UPDATE_FINALIZATION: {
+        UPDATE_FINALIZATION_START: 'UPDATE_FINALIZATION_START',
+        UPDATE_FINALIZATION_METADATA_VALIDATION_START:
+            'UPDATE_FINALIZATION_METADATA_VALIDATION_START',
+        UPDATE_FINALIZATION_METADATA_VALIDATION_END: 'UPDATE_FINALIZATION_METADATA_VALIDATION_END',
+        UPDATE_FINALIZATION_STORE_ASSERTION_START: 'UPDATE_FINALIZATION_STORE_ASSERTION_START',
+        UPDATE_FINALIZATION_STORE_ASSERTION_END: 'UPDATE_FINALIZATION_STORE_ASSERTION_END',
+        UPDATE_FINALIZATION_END: 'UPDATE_FINALIZATION_END',
+    },
+    UPDATE: {
+        UPDATE_START: 'UPDATE_START',
+        UPDATE_INIT_START: 'UPDATE_INIT_START',
+        UPDATE_INIT_END: 'UPDATE_INIT_END',
+        UPDATE_REPLICATE_START: 'UPDATE_REPLICATE_START',
+        UPDATE_REPLICATE_END: 'UPDATE_REPLICATE_END',
+        UPDATE_FIND_NODES_START: 'UPDATE_FIND_NODES_START',
+        UPDATE_FIND_NODES_END: 'UPDATE_FIND_NODES_END',
+        VALIDATING_UPDATE_ASSERTION_REMOTE_START: 'VALIDATING_UPDATE_ASSERTION_REMOTE_START',
+        VALIDATING_UPDATE_ASSERTION_REMOTE_END: 'VALIDATING_UPDATE_ASSERTION_REMOTE_END',
+        UPDATE_END: 'UPDATE_END',
+        UPDATE_VALIDATE_ASSET_START: 'UPDATE_VALIDATE_ASSET_START',
+        UPDATE_VALIDATE_ASSET_END: 'UPDATE_VALIDATE_ASSET_END',
+        UPDATE_NETWORK_START_ERROR: 'UPDATE_NETWORK_START_ERROR',
+        UPDATE_LOCAL_STORE_REMOTE_START: 'UPDATE_LOCAL_STORE_REMOTE_START',
+        UPDATE_LOCAL_STORE_REMOTE_END: 'UPDATE_LOCAL_STORE_REMOTE_END',
+        UPDATE_VALIDATE_ASSET_REMOTE_START: 'UPDATE_VALIDATE_ASSET_REMOTE_START',
+        UPDATE_VALIDATE_ASSET_REMOTE_END: 'UPDATE_VALIDATE_ASSET_REMOTE_END',
+        UPDATE_LOCAL_STORE_REMOTE_CACHE_DATASET_START:
+            'UPDATE_LOCAL_STORE_REMOTE_CACHE_DATASET_START',
+        UPDATE_LOCAL_STORE_REMOTE_CACHE_DATASET_END: 'UPDATE_LOCAL_STORE_REMOTE_CACHE_DATASET_END',
+    },
+    GET: {
+        ASSERTION_EXISTS_LOCAL_START: 'ASSERTION_EXISTS_LOCAL_START',
+        ASSERTION_EXISTS_LOCAL_END: 'ASSERTION_EXISTS_LOCAL_END',
+        GET_START: 'GET_START',
+        GET_INIT_START: 'GET_INIT_START',
+        GET_INIT_END: 'GET_INIT_END',
+        GET_VALIDATE_ASSET_START: 'GET_VALIDATE_ASSET_START',
+        GET_VALIDATE_ASSET_END: 'GET_VALIDATE_ASSET_END',
+        GET_LOCAL_START: 'GET_LOCAL_START',
+        GET_LOCAL_END: 'GET_LOCAL_END',
+        GET_REMOTE_START: 'GET_REMOTE_START',
+        GET_REMOTE_END: 'GET_REMOTE_END',
+        GET_FETCH_FROM_NODES_START: 'GET_FETCH_FROM_NODES_START',
+        GET_FETCH_FROM_NODES_END: 'GET_FETCH_FROM_NODES_END',
+        GET_FIND_NODES_START: 'GET_FIND_NODES_START',
+        GET_FIND_NODES_END: 'PUBLISH_FIND_NODES_END',
+        GET_END: 'GET_END',
+        GET_FAILED: 'GET_FAILED',
+    },
+    BATCH_GET: {
+        BATCH_GET_INIT: 'BATCH_GET_INIT',
+        BATCH_GET_START: 'BATCH_GET_START',
+        BATCH_GET_END: 'BATCH_GET_END',
+        BATCH_GET_FAILED: 'BATCH_GET_FAILED',
+        BATCH_GET_VALIDATE_ASSET_START: 'BATCH_GET_VALIDATE_ASSET_START',
+        BATCH_GET_VALIDATE_ASSET_END: 'BATCH_GET_VALIDATE_ASSET_END',
+        BATCH_GET_VALIDATE_ASSET_ERROR: 'BATCH_GET_VALIDATE_ASSET_ERROR',
+        BATCH_GET_LOCAL_START: 'BATCH_GET_LOCAL_START',
+        BATCH_GET_LOCAL_END: 'BATCH_GET_LOCAL_END',
+        BATCH_GET_REMOTE_START: 'BATCH_GET_REMOTE_START',
+        BATCH_GET_REMOTE_END: 'BATCH_GET_REMOTE_END',
+        BATCH_GET_REQUEST_REMOTE_ERROR: 'BATCH_GET_REQUEST_REMOTE_ERROR',
+        BATCH_GET_FIND_SHARD_START: 'BATCH_GET_FIND_SHARD_START',
+        BATCH_GET_FIND_SHARD_END: 'BATCH_GET_FIND_SHARD_END',
+    },
+    QUERY: {
+        QUERY_INIT_START: 'QUERY_INIT_START',
+        QUERY_INIT_END: 'QUERY_INIT_END',
+        QUERY_START: 'QUERY_START',
+        QUERY_END: 'QUERY_END',
+        QUERY_FAILED: 'QUERY_FAILED',
+    },
+    LOCAL_STORE: {
+        LOCAL_STORE_INIT_START: 'LOCAL_STORE_INIT_START',
+        LOCAL_STORE_INIT_END: 'LOCAL_STORE_INIT_END',
+        LOCAL_STORE_START: 'LOCAL_STORE_START',
+        LOCAL_STORE_END: 'LOCAL_STORE_END',
+        LOCAL_STORE_PROCESS_RESPONSE_START: 'LOCAL_STORE_PROCESS_RESPONSE_START',
+        LOCAL_STORE_PROCESS_RESPONSE_END: 'LOCAL_STORE_PROCESS_RESPONSE_END',
+    },
+    PARANET: {
+        PARANET_SYNC_START: 'PARANET_SYNC_START',
+        PARANET_SYNC_END: 'PARANET_SYNC_END',
+        PARANET_SYNC_MISSED_KAS_SYNC_START: 'PARANET_SYNC_MISSED_KAS_SYNC_START',
+        PARANET_SYNC_MISSED_KAS_SYNC_END: 'PARANET_SYNC_MISSED_KAS_SYNC_END',
+        PARANET_SYNC_NEW_KAS_SYNC_START: 'PARANET_SYNC_NEW_KAS_SYNC_START',
+        PARANET_SYNC_NEW_KAS_SYNC_END: 'PARANET_SYNC_NEW_KAS_SYNC_END',
+    },
+    ASK: {
+        ASK_START: 'ASK_START',
+        ASK_END: 'ASK_END',
+        ASK_REMOTE_START: 'ASK_REMOTE_START',
+        ASK_REMOTE_END: 'ASK_REMOTE_START',
+        ASK_FIND_NODES_START: 'ASK_FIND_NODES_START',
+        ASK_FIND_NODES_END: 'ASK_FIND_NODES_END',
+        ASK_FETCH_FROM_NODES_START: 'ASK_FETCH_FROM_NODES_START',
+        ASK_FETCH_FROM_NODES_END: 'ASK_FETCH_FROM_NODES_END',
+    },
+    FINALITY: {
+        FINALITY_START: 'FINALITY_START',
+        FINALITY_END: 'FINALITY_END',
+        FINALITY_REMOTE_START: 'FINALITY_REMOTE_START',
+        FINALITY_REMOTE_END: 'FINALITY_REMOTE_START',
+        FINALITY_REPLICATE_START: 'FINALITY_REPLICATE_START',
+        FINALITY_REPLICATE_END: 'FINALITY_REPLICATE_END',
+        FINALITY_FETCH_FROM_NODES_START: 'FINALITY_FETCH_FROM_NODES_START',
+        FINALITY_FETCH_FROM_NODES_END: 'FINALITY_FETCH_FROM_NODES_END',
+        PUBLISH_FINALITY_REMOTE_START: 'PUBLISH_FINALITY_REMOTE_START',
+        PUBLISH_FINALITY_REMOTE_END: 'PUBLISH_FINALITY_REMOTE_END',
+        PUBLISH_FINALITY_END: 'PUBLISH_FINALITY_END',
+        PUBLISH_FINALITY_FETCH_FROM_NODES_END: 'PUBLISH_FINALITY_FETCH_FROM_NODES_END',
+    },
+    SYNC: {
+        SYNC_START: 'SYNC_START',
+        SYNC_NEW_START: 'SYNC_NEW_START',
+        SYNC_MISSED_START: 'SYNC_MISSED_START',
+        SYNC_END: 'SYNC_END',
+        SYNC_NEW_END: 'SYNC_NEW_END',
+        SYNC_MISSED_END: 'SYNC_MISSED_END',
+        SYNC_PROGRESS_STATUS: 'SYNC_PROGRESS_STATUS',
+        SYNC_FAILED: 'SYNC_FAILED',
+        SYNC_NEW_FAILED: 'SYNC_NEW_FAILED',
+        SYNC_MISSED_FAILED: 'SYNC_MISSED_FAILED',
+    },
+};
+
+export const OPERATIONS = {
+    PUBLISH: 'publish',
+    FINALITY: 'finality',
+    // UPDATE: 'update',
+    GET: 'get',
+    BATCH_GET: 'batchGet',
+    ASK: 'ask',
+};
+
+export const SERVICE_AGREEMENT_START_TIME_DELAY_FOR_COMMITS_SECONDS = {
+    mainnet: 5 * 60,
+    testnet: 5 * 60,
+    devnet: 3 * 60,
+    test: 10,
+    development: 10,
+};
+
+export const EXPECTED_TRANSACTION_ERRORS = {
+    INSUFFICIENT_FUNDS: 'InsufficientFunds',
+    NODE_ALREADY_SUBMITTED_COMMIT: 'NodeAlreadySubmittedCommit',
+    TIMEOUT_EXCEEDED: 'timeout exceeded',
+    TOO_LOW_PRIORITY: 'TooLowPriority',
+    NODE_ALREADY_REWARDED: 'NodeAlreadyRewarded',
+    SERVICE_AGREEMENT_DOESNT_EXIST: 'ServiceAgreementDoesntExist',
+    INVALID_SCORE_FUNCTION_ID: 'InvalidScoreFunctionId',
+    COMMIT_WINDOW_CLOSED: 'CommitWindowClosed',
+    NODE_NOT_IN_SHARDING_TABLE: 'NodeNotInShardingTable',
+    PROOF_WINDOW_CLOSED: 'ProofWindowClosed',
+    NODE_NOT_AWARDED: 'NodeNotAwarded',
+    WRONG_MERKLE_PROOF: 'WrongMerkleProof',
+    NO_MINTED_ASSETS: 'NoMintedAssets',
+    NONCE_TOO_LOW: 'nonce too low',
+    REPLACEMENT_UNDERPRICED: 'replacement transaction underpriced',
+    ALREADY_KNOWN: 'already known',
+};
+
+/**
+ * @constant {number} OPERATION_ID_COMMAND_CLEANUP_TIME_MILLS -
+ * operation id command cleanup interval time 24h
+ */
+export const OPERATION_ID_COMMAND_CLEANUP_TIME_MILLS = 24 * 60 * 60 * 1000;
+/**
+ * @constant {number} FINALIZED_COMMAND_CLEANUP_TIME_MILLS - Command cleanup interval time
+ * finalized commands command cleanup interval time 24h
+ */
+
+export const PUBLISH_STORAGE_MEMORY_CLEANUP_COMMAND_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const PUBLISH_STORAGE_FILE_CLEANUP_COMMAND_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+
+export const FINALIZED_COMMAND_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const FINALIZED_COMMAND_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+
+export const GET_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const GET_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+export const GET_RESPONSE_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const GET_RESPONSE_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+
+export const PUBLISH_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const PUBLISH_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+export const PUBLISH_RESPONSE_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const PUBLISH_RESPONSE_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+
+export const UPDATE_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const UPDATE_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+export const UPDATE_RESPONSE_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const UPDATE_RESPONSE_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+
+export const ASK_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const ASK_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+export const ASK_RESPONSE_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const ASK_RESPONSE_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+
+export const FINALITY_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const FINALITY_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+export const FINALITY_RESPONSE_CLEANUP_TIME_MILLS = 12 * 60 * 60 * 1000;
+export const FINALITY_RESPONSE_CLEANUP_TIME_DELAY = 24 * 60 * 60 * 1000;
+
+export const PROCESSED_BLOCKCHAIN_EVENTS_CLEANUP_TIME_MILLS = 1 * 60 * 60 * 1000;
+export const PROCESSED_BLOCKCHAIN_EVENTS_CLEANUP_TIME_DELAY = 1 * 60 * 60 * 1000;
+
+/**
+ * @constant {number} COMMAND_STATUS -
+ * Status for commands
+ */
+export const COMMAND_STATUS = {
+    FAILED: 'FAILED',
+    EXPIRED: 'EXPIRED',
+    UNKNOWN: 'UNKNOWN',
+    STARTED: 'STARTED',
+    PENDING: 'PENDING',
+    COMPLETED: 'COMPLETED',
+    REPEATING: 'REPEATING',
+};
+
+export const PENDING_STORAGE_FILES_FOR_REMOVAL_MAX_NUMBER = 100_000;
+
+export const OPERATION_ID_FILES_FOR_REMOVAL_MAX_NUMBER = 100;
+
+export const REPOSITORY_ROWS_FOR_REMOVAL_MAX_NUMBER = 50_000;
+
+export const MIGRATION_FOLDER = 'migrations';
+
+export const PUBLISHER_NODE_SIGNATURES_FOLDER = 'publisher';
+
+export const NETWORK_SIGNATURES_FOLDER = 'network';
+
+/**
+ * How many commands will run in parallel
+ * @type {number}
+ */
+export const GENERAL_COMMAND_QUEUE_PARALLELISM = 100;
+
+export const BATCH_GET_COMMAND_QUEUE_PARALLELISM = 20;
+
+export const GET_LATEST_SERVICE_AGREEMENT_BATCH_SIZE = 50;
+
+export const GET_ASSERTION_IDS_MAX_RETRY_COUNT = 5;
+
+export const GET_ASSERTION_IDS_RETRY_DELAY_IN_SECONDS = 2;
+
+export const GET_LATEST_SERVICE_AGREEMENT_EXCLUDE_LATEST_TOKEN_ID = 1;
+
+/**
+ * @constant {object} HTTP_API_ROUTES -
+ *  HTTP API Routes with parameters
+ */
+export const HTTP_API_ROUTES = {
+    v0: {
+        // publish: {
+        //     method: 'post',
+        //     path: '/publish',
+        //     options: { rateLimit: true },
+        // },
+        // update: {
+        //     method: 'post',
+        //     path: '/update',
+        //     options: { rateLimit: true },
+        // },
+        query: {
+            method: 'post',
+            path: '/query',
+            options: {},
+        },
+        // 'local-store': {
+        //     method: 'post',
+        //     path: '/local-store',
+        //     options: {},
+        // },
+        get: {
+            method: 'post',
+            path: '/get',
+            options: { rateLimit: true },
+        },
+        result: {
+            method: 'get',
+            path: '/:operation/:operationId',
+            options: {},
+        },
+        info: {
+            method: 'get',
+            path: '/info',
+            options: {},
+        },
+        'bid-suggestion': {
+            method: 'get',
+            path: '/bid-suggestion',
+            options: {},
+        },
+    },
+    v1: {
+        publish: {
+            method: 'post',
+            path: '/publish',
+            options: { rateLimit: true },
+        },
+        finality: {
+            method: 'get',
+            path: '/finality',
+            options: {},
+        },
+        // update: {
+        //     method: 'post',
+        //     path: '/update',
+        //     options: { rateLimit: true },
+        // },
+        query: {
+            method: 'post',
+            path: '/query',
+            options: {},
+        },
+        get: {
+            method: 'post',
+            path: '/get',
+            options: { rateLimit: true },
+        },
+        result: {
+            method: 'get',
+            path: '/:operation/:operationId',
+            options: {},
+        },
+        info: {
+            method: 'get',
+            path: '/info',
+            options: {},
+        },
+        ask: {
+            method: 'post',
+            path: '/ask',
+            options: {},
+        },
+        'direct-query': {
+            method: 'post',
+            path: '/direct-query',
+            options: {},
+        },
+        'local-store': {
+            method: 'post',
+            path: '/local-store',
+            options: {},
+        },
+    },
+};
+
+/**
+ * @constant {object} NETWORK_PROTOCOLS -
+ *  Network protocols
+ */
+export const NETWORK_PROTOCOLS = {
+    STORE: ['/store/1.0.0'],
+    // UPDATE: ['/update/1.0.0'],
+    GET: ['/get/1.0.0'],
+    BATCH_GET: ['/batch-get/1.0.0'],
+    ASK: ['/ask/1.0.0'],
+    FINALITY: ['/finality/1.0.0'],
+};
+
+export const OPERATION_STATUS = {
+    IN_PROGRESS: 'IN_PROGRESS',
+    FAILED: 'FAILED',
+    COMPLETED: 'COMPLETED',
+};
+
+export const AGREEMENT_STATUS = {
+    ACTIVE: 'ACTIVE',
+    EXPIRED: 'EXPIRED',
+};
+
+export const OPERATION_REQUEST_STATUS = {
+    FAILED: 'FAILED',
+    COMPLETED: 'COMPLETED',
+};
+
+/**
+ * Local query types
+ * @type {{CONSTRUCT: string, SELECT: string}}
+ */
+export const QUERY_TYPES = {
+    SELECT: 'SELECT',
+    CONSTRUCT: 'CONSTRUCT',
+};
+
+/**
+ * Local store types
+ * @type {{TRIPLE: string, PENDING: string}}
+ */
+export const LOCAL_STORE_TYPES = {
+    TRIPLE: 'TRIPLE',
+    TRIPLE_PARANET: 'TRIPLE_PARANET',
+};
+
+/**
+ * Contract names
+ * @type {{SHARDING_TABLE: string}}
+ */
+export const CONTRACTS = {
+    SHARDING_TABLE: 'ShardingTable',
+    STAKING: 'Staking',
+    PROFILE: 'Profile',
+    HUB: 'Hub',
+    PARAMETERS_STORAGE: 'ParametersStorage',
+    IDENTITY_STORAGE: 'IdentityStorage',
+    LOG2PLDSF: 'Log2PLDSF',
+    LINEAR_SUM: 'LinearSum',
+    PARANETS_REGISTRY: 'ParanetsRegistry',
+};
+
+export const MONITORED_CONTRACT_EVENTS = {
+    Hub: ['NewContract', 'ContractChanged', 'NewAssetStorage', 'AssetStorageChanged'],
+    ParametersStorage: ['ParameterChanged'],
+    KnowledgeCollectionStorage: ['KnowledgeCollectionCreated'],
+};
+
+export const MONITORED_CONTRACTS = Object.keys(MONITORED_CONTRACT_EVENTS);
+
+export const MONITORED_EVENTS = Object.values(MONITORED_CONTRACT_EVENTS).flatMap(
+    (events) => events,
+);
+
+export const CONTRACT_INDEPENDENT_EVENTS = {};
+
+export const NODE_ENVIRONMENTS = {
+    DEVELOPMENT: 'development',
+    TEST: 'test',
+    DEVNET: 'devnet',
+    TESTNET: 'testnet',
+    MAINNET: 'mainnet',
+};
+
+export const MAXIMUM_FETCH_EVENTS_FAILED_COUNT = 1000;
+
+export const CONTRACT_EVENT_FETCH_INTERVALS = {
+    MAINNET: 10 * 1000,
+    DEVELOPMENT: 4 * 1000,
+};
+
+export const TRANSACTION_CONFIRMATIONS = 1;
+
+export const SERVICE_AGREEMENT_SOURCES = {
+    BLOCKCHAIN: 'blockchain',
+    EVENT: 'event',
+    CLIENT: 'client',
+    NODE: 'node',
+};
+
+export const CACHE_DATA_TYPES = {
+    NUMBER: 'number',
+    ANY: 'any',
+};
+
+export const PARANET_SYNC_SOURCES = {
+    SYNC: 'sync',
+    LOCAL_STORE: 'local_store',
+};
+
+/**
+ * CACHED_FUNCTIONS:
+ * ContractName: {
+ *     functionName: returnType
+ * }
+ * @type {{IdentityStorageContract: [{name: string, type: string}], ParametersStorageContract: *}}
+ */
+export const CACHED_FUNCTIONS = {
+    ParametersStorageContract: {
+        r0: CACHE_DATA_TYPES.NUMBER,
+        r1: CACHE_DATA_TYPES.NUMBER,
+        r2: CACHE_DATA_TYPES.NUMBER,
+        finalizationCommitsNumber: CACHE_DATA_TYPES.NUMBER,
+        updateCommitWindowDuration: CACHE_DATA_TYPES.NUMBER,
+        commitWindowDurationPerc: CACHE_DATA_TYPES.NUMBER,
+        proofWindowDurationPerc: CACHE_DATA_TYPES.NUMBER,
+        epochLength: CACHE_DATA_TYPES.NUMBER,
+        minimumStake: CACHE_DATA_TYPES.ANY,
+        maximumStake: CACHE_DATA_TYPES.ANY,
+        minProofWindowOffsetPerc: CACHE_DATA_TYPES.NUMBER,
+        maxProofWindowOffsetPerc: CACHE_DATA_TYPES.NUMBER,
+    },
+    IdentityStorageContract: {
+        getIdentityId: CACHE_DATA_TYPES.NUMBER,
+    },
+};
+
+export const LOW_BID_SUGGESTION = 'low';
+export const MED_BID_SUGGESTION = 'med';
+export const HIGH_BID_SUGGESTION = 'high';
+export const ALL_BID_SUGGESTION = 'all';
+export const BID_SUGGESTION_RANGE_ENUM = [
+    LOW_BID_SUGGESTION,
+    MED_BID_SUGGESTION,
+    HIGH_BID_SUGGESTION,
+    ALL_BID_SUGGESTION,
+];
+export const LOW_BID_SUGGESTION_OFFSET = 9;
+export const MED_BID_SUGGESTION_OFFSET = 11;
+export const HIGH_BID_SUGGESTION_OFFSET = 14;
+
+export const LOCAL_INSERT_FOR_ASSET_SYNC_MAX_ATTEMPTS = 5;
+export const LOCAL_INSERT_FOR_ASSET_SYNC_RETRY_DELAY = 1000;
+
+export const LOCAL_INSERT_FOR_CURATED_PARANET_MAX_ATTEMPTS = 5;
+export const LOCAL_INSERT_FOR_CURATED_PARANET_RETRY_DELAY = 1000;
+
+export const MAX_RETRIES_READ_CACHED_PUBLISH_DATA = 10;
+export const RETRY_DELAY_READ_CACHED_PUBLISH_DATA = 10 * 1000;
+
+export const TRIPLE_STORE_REPOSITORY = {
+    DKG: 'dkg',
+    DKG_HISTORIC: 'dkg-historic',
+};
+
+export const TRIPLES_VISIBILITY = {
+    PUBLIC: 'public',
+    PRIVATE: 'private',
+    ALL: 'all',
+};
+
+export const V6_CONTENT_STORAGE_MAP = {
+    BASE_MAINNET: '0x3bdfA81079B2bA53a25a6641608E5E1E6c464597',
+    BASE_TESTNET: '0x9e3071Dc0730CB6dd0ce42969396D716Ea33E7e1',
+    BASE_DEVNET: '0xBe08A25dcF2B68af88501611e5456571f50327B4',
+    GNOSIS_MAINNET: '0xf81a8C0008DE2DCdb73366Cf78F2b178616d11DD',
+    GNOSIS_TESTNET: '0xeA3423e02c8d231532dab1BCE5D034f3737B3638',
+    GNOSIS_DEVNET: '0x3db64dD0Ac054610d1e2Af9Cca0fbCB1A7f4C2d8',
+    OTP_MAINNET: '0x5cAC41237127F94c2D21dAe0b14bFeFa99880630',
+    OTP_TESTNET: '0x1A061136Ed9f5eD69395f18961a0a535EF4B3E5f',
+    OTP_DEVNET: '0xABd59A9aa71847F499d624c492d3903dA953d67a',
+};
+
+export const PROOFING_INTERVAL = 5 * 60 * 1000;
+export const PROOFING_MAX_ATTEMPTS = 120;
+export const REORG_PROOFING_BUFFER = 60 * 1000;
+export const CHUNK_SIZE = 32;
+
+export const CLAIM_REWARDS_INTERVAL = 60 * 60 * 1000;
+export const CLAIM_REWARDS_BATCH_SIZE = 10;
+
+export const BATCH_GET_BATCH_SIZE = 2;
+export const BATCH_GET_UAL_MAX_LIMIT = 1000;
+
+export const SYNC_INTERVAL = 12 * 1000;
+export const SYNC_BATCH_GET_WAIT_TIME = 1000;
+export const SYNC_BATCH_GET_MAX_ATTEMPTS = 15 * 60;
+
+export const MAX_TOKEN_ID_PER_GET_PAGE = 50;
+
+export const BLAZEGRAPH_HEALTH_INTERVAL = 60 * 1000;
+
+export const MAX_COMMAND_LIFETIME = 15 * 60 * 1000;

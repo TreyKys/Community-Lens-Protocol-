@@ -1,0 +1,119 @@
+import {
+    OPERATION_ID_STATUS,
+    OPERATION_STATUS,
+    ERROR_TYPE,
+    TRIPLES_VISIBILITY,
+    COMMAND_PRIORITY,
+} from '../../../constants/constants.js';
+
+import BaseController from '../base-http-api-controller.js';
+
+class GetController extends BaseController {
+    constructor(ctx) {
+        super(ctx);
+        this.commandExecutor = ctx.commandExecutor;
+        this.operationIdService = ctx.operationIdService;
+        this.operationService = ctx.getService;
+        this.repositoryModuleManager = ctx.repositoryModuleManager;
+        this.ualService = ctx.ualService;
+        this.validationService = ctx.validationService;
+        this.fileService = ctx.fileService;
+        this.paranetService = ctx.paranetService;
+        this.blockchainModuleManager = ctx.blockchainModuleManager;
+    }
+
+    async handleRequest(req, res) {
+        let operationId;
+        let blockchain;
+        let contract;
+        let knowledgeCollectionId;
+        let knowledgeAssetId;
+        try {
+            operationId = await this.operationIdService.generateOperationId(
+                OPERATION_ID_STATUS.GET.GET_START,
+            );
+
+            await this.operationIdService.updateOperationIdStatus(
+                operationId,
+                null,
+                OPERATION_ID_STATUS.GET.GET_INIT_START,
+            );
+
+            this.returnResponse(res, 202, {
+                operationId,
+            });
+
+            await this.repositoryModuleManager.createOperationRecord(
+                this.operationService.getOperationName(),
+                operationId,
+                OPERATION_STATUS.IN_PROGRESS,
+            );
+            const { paranetUAL, includeMetadata, contentType } = req.body;
+            const ual = req.body.id;
+            ({ blockchain, contract, knowledgeCollectionId, knowledgeAssetId } =
+                this.ualService.resolveUAL(ual));
+            contract = contract.toLowerCase();
+            let paranetNodesAccessPolicy;
+            this.logger.info(`Get for ${ual} with operation id ${operationId} initiated.`);
+
+            if (paranetUAL) {
+                const {
+                    contract: paranetContract,
+                    knowledgeCollectionId: paranetKnowledgeCollectionId,
+                    knowledgeAssetId: paranetKnowledgeAssetId,
+                } = this.ualService.resolveUAL(paranetUAL);
+
+                const paranetId = this.paranetService.constructParanetId(
+                    paranetContract,
+                    paranetKnowledgeCollectionId,
+                    paranetKnowledgeAssetId,
+                );
+
+                paranetNodesAccessPolicy = await this.blockchainModuleManager.getNodesAccessPolicy(
+                    blockchain,
+                    paranetId,
+                );
+            }
+
+            await this.commandExecutor.add({
+                name: 'getCommand',
+                sequence: [],
+                data: {
+                    ual,
+                    includeMetadata,
+                    blockchain,
+                    contract,
+                    knowledgeCollectionId,
+                    knowledgeAssetId,
+                    operationId,
+                    paranetUAL,
+                    paranetNodesAccessPolicy,
+                    contentType: contentType ?? TRIPLES_VISIBILITY.ALL,
+                },
+                transactional: false,
+                priority: COMMAND_PRIORITY.HIGHEST,
+            });
+
+            await this.operationIdService.updateOperationIdStatus(
+                operationId,
+                blockchain,
+                OPERATION_ID_STATUS.GET.GET_INIT_END,
+            );
+        } catch (error) {
+            this.logger.error(`Error while initializing get data: ${error.message}.`);
+
+            await this.operationService.markOperationAsFailed(
+                operationId,
+                blockchain,
+                'Unable to get data, Failed to process input data!',
+                ERROR_TYPE.GET.GET_ROUTE_ERROR,
+            );
+            this.operationIdService.emitChangeEvent(
+                OPERATION_ID_STATUS.GET.GET_FAILED,
+                operationId,
+            );
+        }
+    }
+}
+
+export default GetController;
