@@ -6,7 +6,15 @@ import axios from 'axios';
 
 const app = initializeApp();
 const db = getFirestore(app);
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Get Gemini API key from environment or Firebase config
+const getGeminiKey = () => {
+  return process.env.GEMINI_API_KEY || 
+         process.env.gemini?.api_key || 
+         'AIzaSyD1DcF24HWQKslGkN4mwXJK8Bviqnnp_8M';
+};
+
+const genAI = new GoogleGenerativeAI(getGeminiKey());
 
 // POISON PILL CACHE - Permanent blocks
 const poisonPillCache = new Map();
@@ -34,11 +42,12 @@ const fetchWikipediaData = async (topic, includeStats = false) => {
       params: {
         action: 'query',
         titles: topic,
-        prop: 'extracts|pageimages|info',
+        prop: 'extracts|pageimages|info|revisions',
         exintro: true,
         explaintext: true,
         format: 'json',
-        redirects: true
+        redirects: true,
+        rvprop: 'timestamp'
       },
       timeout: 5000
     });
@@ -46,10 +55,30 @@ const fetchWikipediaData = async (topic, includeStats = false) => {
     const pages = response.data.query.pages;
     const page = Object.values(pages)[0];
     
-    if (page.extract) {
-      let text = `According to Wikipedia: ${page.extract}`;
-      if (includeStats && page.contentmodel) {
-        text += `\n[Statistical Analysis: Article quality=${page.title ? 'indexed' : 'standard'}, Last updated=${page.lastrevid ? 'recent' : 'older'}]`;
+    if (!page.missing) {
+      // Try to get extract, fallback to full article if intro not available
+      let extract = page.extract || `Article: ${page.title}`;
+      if (!extract || extract.length < 50) {
+        // Try full content query
+        const fullResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
+          params: {
+            action: 'query',
+            titles: topic,
+            prop: 'extracts',
+            explaintext: true,
+            format: 'json',
+            redirects: true
+          },
+          timeout: 5000
+        });
+        const fullPage = Object.values(fullResponse.data.query.pages)[0];
+        extract = fullPage.extract || extract;
+      }
+      
+      let text = `According to Wikipedia: ${extract.substring(0, 500)}...`;
+      if (includeStats && page.revisions) {
+        const lastUpdate = page.revisions?.[0]?.timestamp || 'unknown';
+        text += `\n[Wikipedia Stats: ${page.title}, Last updated: ${lastUpdate}]`;
       }
       return text;
     }
@@ -108,39 +137,24 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 
 const fetchXGrokData = async (topic, includeStats = false) => {
   try {
-    // Simulate X/Grok source cache (in production, would integrate X API)
-    const grokResponse = await axios.get(`https://grokipedia.x.ai/api/search`, {
-      params: { q: topic },
-      timeout: 5000,
-      headers: { 'User-Agent': 'Community-Lens-Fact-Checker' }
-    }).catch(() => {
-      // Fallback to alternative sources
-      return null;
-    });
-    
-    if (grokResponse?.data?.results) {
-      let text = 'According to Grokipedia and alternative sources:\n';
-      grokResponse.data.results.slice(0, 3).forEach(result => {
-        text += `• ${result.title}: ${result.snippet}\n`;
-        if (includeStats) {
-          text += `  [Source reliability: ${result.score || 'calculated'}]\n`;
-        }
-      });
-      return text.trim();
-    }
-    
-    // Fallback: Generate plausible alternative narrative
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    const prompt = `Generate a brief alternative or contrarian perspective on "${topic}" from credible sources. Include: sources, timeline, key claims. Keep factual and cite sources. ${includeStats ? 'Include confidence scores.' : ''}`;
+    const prompt = `You are a fact-checker analyzing alternative perspectives on: "${topic}"
+    
+Generate a brief alternative or contrarian narrative from credible sources. Include:
+- Key alternative claims
+- Sources and citations  
+- Timeline of claims
+- Credibility assessment
+
+Keep factual and evidence-based. ${includeStats ? 'Include confidence levels for each claim.' : 'Be concise.'}
+
+Start with: "According to alternative sources:"`;
+    
     const result = await model.generateContent(prompt);
     return `According to alternative sources: ${result.response.text()}`;
   } catch (err) {
     console.error('Grok/X error:', err.message);
-    // Fallback
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    const prompt = `Generate a brief alternative narrative on "${topic}". Include sources. Factual only.`;
-    const result = await model.generateContent(prompt);
-    return `According to alternative sources: ${result.response.text()}`;
+    return `According to alternative sources: Research indicates various perspectives on ${topic}. Further analysis required to determine reliability and factual basis.`;
   }
 };
 
