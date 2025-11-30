@@ -13,16 +13,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const getBackendUrl = () => {
-  if (import.meta.env.PROD) {
-    return 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
-  }
-  return '';
-};
+// ALWAYS use Cloud Functions in production
+const API_BASE_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
 
 const callFunction = async (endpoint, data) => {
-  const baseUrl = getBackendUrl();
-  const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+  const url = `${API_BASE_URL}${endpoint}`;
   
   try {
     const response = await fetch(url, {
@@ -46,8 +41,7 @@ export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', da
 export const agentGuard = (data) => callFunction('/agentGuard', data);
 
 export const getBounties = async () => {
-  const baseUrl = getBackendUrl();
-  const url = baseUrl ? `${baseUrl}/getBounties` : '/getBounties';
+  const url = `${API_BASE_URL}/getBounties`;
   
   try {
     const response = await fetch(url);
