@@ -7,3 +7,12 @@ serviceAccount.json
 attached_assets/
 dist/
 build/
+
+# Build output
+dist/
+build/
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
