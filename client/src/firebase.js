@@ -14,8 +14,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const getBackendUrl = () => {
-  const isProduction = import.meta.env.PROD;
-  if (isProduction) {
+  if (import.meta.env.PROD) {
     return 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
   }
   return '';
@@ -31,8 +30,7 @@ const callFunction = async (endpoint, data) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data })
     });
-    
-    if (!response.ok) throw new Error(`Error ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
     console.error(`API error at ${endpoint}:`, error);
@@ -53,8 +51,9 @@ export const getBounties = async () => {
   
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    return await response.json();
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    return result;
   } catch (error) {
     console.error('Bounties error:', error);
     return { data: [
