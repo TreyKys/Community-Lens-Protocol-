@@ -1,0 +1,9 @@
+{
+  "name": "community-lens",
+  "version": "1.0.0",
+  "description": "Community Lens - AI Fact-Checking Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix client run dev"
+  }
+}

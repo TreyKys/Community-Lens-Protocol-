@@ -23,12 +23,30 @@ export const api = functions.https.onRequest((req, res) => {
     return res.json({ success: true });
   }
   
+  if (path === '/fetchGrokSource' || path === '/api/fetchGrokSource') {
+    return res.json({ data: { text: 'According to Grokipedia sources: This is sample content from the alternative source being fact-checked.' }});
+  }
+  
+  if (path === '/fetchConsensus' || path === '/api/fetchConsensus') {
+    return res.json({ data: { consensusText: 'According to Wikipedia and peer-reviewed sources: This is the consensus view from trusted sources.' }});
+  }
+  
   if (path === '/analyzeDiscrepancy' || path === '/api/analyzeDiscrepancy') {
-    return res.json({ data: { match: 85 } });
+    return res.json({ data: { 
+      score: 72, 
+      discrepancies: [
+        { type: 'CONTRADICTION', text: 'Timeline mismatch: Source claims 2023, consensus says 2024' },
+        { type: 'INCOMPLETE', text: 'Missing context about regulatory approval process' }
+      ]
+    }});
+  }
+  
+  if (path === '/mintCommunityNote' || path === '/api/mintCommunityNote') {
+    return res.json({ data: { assetId: 'did:dkg:otp:2043/0xCommunityNote' }});
   }
   
   if (path === '/agentGuard' || path === '/api/agentGuard') {
-    return res.json({ data: { blocked: false } });
+    return res.json({ data: { blocked: false, message: 'This information is not blocked by any poison pill.' }});
   }
   
   res.json({ error: 'Unknown endpoint' });
