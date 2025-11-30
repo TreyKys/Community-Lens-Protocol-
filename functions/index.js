@@ -1,27 +1,17 @@
-// Load environment variables from .env file
-require('dotenv').config();
-
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const axios = require("axios");
-const crypto = require("crypto");
-const cors = require("cors")({ origin: true });
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const DkgClient = require("dkg.js");
+import functions from 'firebase-functions';
+import admin from 'firebase-admin';
+import express from 'express';
+import cors from 'cors';
+import crypto from 'crypto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 admin.initializeApp();
 
-// Initialize external clients with keys from environment variables
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const dkg = new DkgClient({
-  endpoint: "https://v6-pegasus-node-02.origin-trail.network",
-  environment: "testnet",
-  blockchain: {
-    name: "otp:2043",
-    publicKey: process.env.DKG_PUBLIC_KEY, // Keeping this as per previous file, though prompt emphasized PRIVATE_KEY
-    privateKey: process.env.PRIVATE_KEY,
-  },
-});
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // -- Callable Functions --
 
