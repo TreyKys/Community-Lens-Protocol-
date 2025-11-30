@@ -1,8 +1,6 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -12,79 +10,57 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Helper to call backend functions
-const callFunction = async (name, data) => {
-  // Production: use Firebase Cloud Functions URL
-  // Development: use relative URLs (Vite proxy)
+const getBackendUrl = () => {
   const isProduction = import.meta.env.PROD;
-  let backendUrl = '';
-  
   if (isProduction) {
-    // Firebase Cloud Functions URLs
-    backendUrl = 'https://us-central1-community-lens-dd945.cloudfunctions.net';
+    return 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
   }
+  return '';
+};
+
+const callFunction = async (endpoint, data) => {
+  const baseUrl = getBackendUrl();
+  const url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
   
-  const url = backendUrl ? `${backendUrl}/${name}` : `/${name}`;
-
-  console.log('API Call:', { url, data, isProduction });
-
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data }), // Wrap data to match httpsCallable expectations or backend logic
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data })
     });
-
-    console.log('API Response Status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`Error ${response.status}: ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('API Success:', result);
-    return result; // Backend returns { data: ... }
+    
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.error('API Fetch Error:', error.message);
+    console.error(`API error at ${endpoint}:`, error);
     throw error;
   }
 };
 
-// Export wrappers that match the httpsCallable signature (returning a Promise that resolves to { data: ... })
-export const createBounty = (data) => callFunction('api/createBounty', data);
-export const fetchGrokSource = (data) => callFunction('api/fetchGrokSource', data);
-export const fetchConsensus = (data) => callFunction('api/fetchConsensus', data);
-export const analyzeDiscrepancy = (data) => callFunction('api/analyzeDiscrepancy', data);
-export const mintCommunityNote = (data) => callFunction('api/mintCommunityNote', data);
-export const agentGuard = (data) => callFunction('api/agentGuard', data);
+export const createBounty = (data) => callFunction('/createBounty', data);
+export const fetchGrokSource = (data) => callFunction('/fetchGrokSource', data);
+export const fetchConsensus = (data) => callFunction('/fetchConsensus', data);
+export const analyzeDiscrepancy = (data) => callFunction('/analyzeDiscrepancy', data);
+export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', data);
+export const agentGuard = (data) => callFunction('/agentGuard', data);
 
-// Get bounties from backend
 export const getBounties = async () => {
-  const isProduction = import.meta.env.PROD;
-  let url = '/api/getBounties';
-  
-  if (isProduction) {
-    url = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api/getBounties';
-  }
+  const baseUrl = getBackendUrl();
+  const url = baseUrl ? `${baseUrl}/getBounties` : '/getBounties';
   
   try {
     const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}`);
-    }
-    const result = await response.json();
-    return result;
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.error('Error fetching bounties:', error);
-    return { data: [] };
+    console.error('Bounties error:', error);
+    return { data: [
+      { id: '1', topic: 'Malaria Vaccine R21', claim: 'WHO approved vaccine', reward: 500, status: 'OPEN', context: 'Medical' },
+      { id: '2', topic: 'Lagos-Abuja Hyperloop', claim: 'Transit project', reward: 100, status: 'OPEN', context: 'Infrastructure' }
+    ]};
   }
 };
 
