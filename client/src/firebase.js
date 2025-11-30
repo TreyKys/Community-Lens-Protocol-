@@ -18,12 +18,19 @@ const db = getFirestore(app);
 
 // Helper to call backend functions
 const callFunction = async (name, data) => {
-  // In development: use relative URLs (Vite proxy routes to localhost:3000)
-  // In production (Netlify): use VITE_BACKEND_URL env variable
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+  // Production: use Firebase Cloud Functions URL
+  // Development: use relative URLs (Vite proxy)
+  const isProduction = import.meta.env.PROD;
+  let backendUrl = '';
+  
+  if (isProduction) {
+    // Firebase Cloud Functions URLs
+    backendUrl = 'https://us-central1-community-lens-dd945.cloudfunctions.net';
+  }
+  
   const url = backendUrl ? `${backendUrl}/${name}` : `/${name}`;
 
-  console.log('API Call:', { url, data });
+  console.log('API Call:', { url, data, isProduction });
 
   try {
     const response = await fetch(url, {
@@ -61,8 +68,13 @@ export const agentGuard = (data) => callFunction('api/agentGuard', data);
 
 // Get bounties from backend
 export const getBounties = async () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-  const url = backendUrl ? `${backendUrl}/api/getBounties` : `/api/getBounties`;
+  const isProduction = import.meta.env.PROD;
+  let url = '/api/getBounties';
+  
+  if (isProduction) {
+    url = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api/getBounties';
+  }
+  
   try {
     const response = await fetch(url);
     if (!response.ok) {
