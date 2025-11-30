@@ -16,7 +16,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 // -- Callable Functions --
 
 // 1. createBounty
-exports.createBounty = functions.https.onRequest((req, res) => {
+export const createBounty = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { userQuery, rewardAmount } = data;
@@ -61,7 +61,7 @@ exports.createBounty = functions.https.onRequest((req, res) => {
 });
 
 // 2. fetchGrokSource (The Gemini Crawler)
-exports.fetchGrokSource = functions.runWith({ memory: '2GB', timeoutSeconds: 60 }).https.onRequest((req, res) => {
+export const fetchGrokSource = functions.runWith({ memory: '2GB', timeoutSeconds: 60 }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { topic } = data;
@@ -94,7 +94,7 @@ Return JSON { text: "..." }`;
 });
 
 // 3. fetchConsensus (The Witness)
-exports.fetchConsensus = functions.https.onRequest((req, res) => {
+export const fetchConsensus = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { topic, mode } = data;
@@ -156,7 +156,7 @@ Constraint: Ignore general web results. Focus on efficacy percentages, safety da
 });
 
 // 4. analyzeDiscrepancy (The Judge)
-exports.analyzeDiscrepancy = functions.https.onRequest((req, res) => {
+export const analyzeDiscrepancy = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { suspectText, consensusText } = data;
@@ -189,7 +189,7 @@ Text B (Consensus): ${consensusText}`;
 });
 
 // 5. mintCommunityNote (The Trust Layer)
-exports.mintCommunityNote = functions.https.onRequest((req, res) => {
+export const mintCommunityNote = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { topic, claim, analysis, bountyId, userId, stake, reward } = data;
@@ -282,7 +282,7 @@ exports.mintCommunityNote = functions.https.onRequest((req, res) => {
 });
 
 // 6. agentGuard (The Firewall)
-exports.agentGuard = functions.https.onRequest((req, res) => {
+export const agentGuard = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     const data = req.body.data || req.body;
     const { question } = data;
@@ -333,7 +333,7 @@ exports.agentGuard = functions.https.onRequest((req, res) => {
 });
 
 // -- Admin --
-exports.forceSeed = functions.https.onRequest(async (req, res) => {
+export const forceSeed = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     const db = admin.firestore();
     const batch = db.batch();
