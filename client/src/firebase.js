@@ -37,6 +37,7 @@ export const createBounty = (data) => callFunction('/createBounty', data);
 export const fetchGrokSource = (data) => callFunction('/fetchGrokSource', data);
 export const fetchConsensus = (data) => callFunction('/fetchConsensus', data);
 export const analyzeDiscrepancy = (data) => callFunction('/analyzeDiscrepancy', data);
+export const verifyAndMint = (data) => callFunction('/verifyAndMint', data);
 export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', data);
 export const agentGuard = (data) => callFunction('/agentGuard', data);
 

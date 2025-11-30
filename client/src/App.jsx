@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, MessageSquare, Zap, Plus, X } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, createBounty, fetchGrokSource, fetchConsensus, analyzeDiscrepancy, mintCommunityNote, agentGuard, getBounties } from './firebase';
+import { db, createBounty, fetchGrokSource, fetchConsensus, analyzeDiscrepancy, verifyAndMint, agentGuard, getBounties } from './firebase';
 
 function App() {
   const [activeTab, setActiveTab] = useState('bounty'); // 'bounty' | 'verifier' | 'agent'
@@ -318,14 +318,14 @@ function VerifierView({ bounty }) {
     if (!analysis) return;
     setPublishStatus('publishing');
     try {
-        const result = await mintCommunityNote({
+        // Call verifyAndMint - this mints to DKG AND updates bounty status to VERIFIED & COMPLETED
+        const result = await verifyAndMint({
             topic: topicInput,
-            claim: suspectText,
-            analysis,
-            stake: stakeAmount,
             bountyId: bounty ? bounty.id : null,
-            userId: "Current_User_Did", // Placeholder for auth
-            reward: bounty ? bounty.reward : 0
+            analysis,
+            claim: suspectText,
+            suspectText,
+            consensusText
         });
         setPublishStatus('success');
         setPublishedUAL(result.data.assetId);

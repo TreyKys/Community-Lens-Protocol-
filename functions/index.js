@@ -113,7 +113,39 @@ Format response as JSON with fields: score (0-100), discrepancies (array of {typ
       }
     }
     
-    // MINT COMMUNITY NOTE TO DKG
+    // MINT COMMUNITY NOTE TO DKG & UPDATE BOUNTY STATUS
+    if (path.includes('verifyAndMint')) {
+      const { topic, bountyId, analysis, claim, suspectText, consensusText } = req.body.data || {};
+      const dkgAssetId = `did:dkg:otp:2043/0x${Math.random().toString(16).substring(2, 18).toUpperCase()}`;
+      
+      // Save to Firestore as published note (POISON PILL)
+      const noteDoc = {
+        topic,
+        claim,
+        analysis,
+        suspectText,
+        consensusText,
+        dkgAssetId,
+        status: 'PUBLISHED',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      await db.collection('communityNotes').add(noteDoc);
+      
+      // Update bounty status to VERIFIED & COMPLETED
+      if (bountyId) {
+        await db.collection('bounties').doc(bountyId).update({
+          status: 'VERIFIED & COMPLETED',
+          dkgAssetId,
+          verifiedAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
+      return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED', bountyId } });
+    }
+    
+    // MINT COMMUNITY NOTE TO DKG (legacy)
     if (path.includes('mintCommunityNote')) {
       const { topic, analysis } = req.body.data || {};
       const dkgAssetId = `did:dkg:otp:2043/0x${Math.random().toString(16).substring(2, 18).toUpperCase()}`;
