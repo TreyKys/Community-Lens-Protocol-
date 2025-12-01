@@ -235,18 +235,25 @@ function VerifierView({ bounty }) {
   const [suspectText, setSuspectText] = useState('');
   const [consensusText, setConsensusText] = useState('');
   const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(''); // 'grok', 'consensus', 'analysis'
+  const [loading, setLoading] = useState(''); // 'grok', 'consensus', 'analysis', 'auto'
   const [publishStatus, setPublishStatus] = useState(null);
   const [stakeAmount, setStakeAmount] = useState(500);
   const [publishedUAL, setPublishedUAL] = useState('');
   const [consensusMode, setConsensusMode] = useState('general'); // 'general' | 'medical'
   const [toast, setToast] = useState(null);
   const [includeStats, setIncludeStats] = useState(false);
+  const [autoFetchDone, setAutoFetchDone] = useState(false);
 
+  // Initial setup when bounty is selected
   useEffect(() => {
     if (bounty) {
       setTopicInput(bounty.topic);
-      setSuspectText(bounty.grokText || '');
+      setSuspectText('');
+      setConsensusText('');
+      setAnalysis(null);
+      setAutoFetchDone(false);
+      setPublishStatus(null);
+      
       // Auto-detect medical context
       if ((bounty.context && bounty.context.toLowerCase().includes('medical')) || (bounty.topic && bounty.topic.toLowerCase().includes('vaccine'))) {
         setConsensusMode('medical');
@@ -255,6 +262,64 @@ function VerifierView({ bounty }) {
       }
     }
   }, [bounty]);
+
+  // Auto-fetch and analyze when bounty is set
+  useEffect(() => {
+    if (!bounty || autoFetchDone) return;
+    
+    const autoFetch = async () => {
+      setLoading('auto');
+      try {
+        // Fetch Grokipedia
+        const grokResult = await fetchGrokSource({ topic: bounty.topic, includeStats: false });
+        if (grokResult.data.text) {
+          setSuspectText(grokResult.data.text);
+        }
+
+        // Fetch Consensus
+        const consensusResult = await fetchConsensus({ topic: bounty.topic, mode: consensusMode, includeStats: false });
+        if (consensusResult.data && consensusResult.data.consensusText) {
+          setConsensusText(consensusResult.data.consensusText);
+        } else if (consensusResult.data && consensusResult.data.text) {
+          setConsensusText(consensusResult.data.text);
+        }
+
+        setToast({ type: 'success', message: '✓ Sources fetched. Running analysis...' });
+        setAutoFetchDone(true);
+      } catch (err) {
+        console.error('Auto-fetch error:', err);
+        setToast({ type: 'warning', message: '⚠️ Could not auto-fetch sources.' });
+        setAutoFetchDone(true);
+      }
+    };
+
+    autoFetch();
+  }, [bounty, autoFetchDone, consensusMode]);
+
+  // Auto-analyze once both sources are loaded
+  useEffect(() => {
+    if (!bounty || loading === 'auto' || !suspectText || !consensusText || analysis) return;
+
+    const autoAnalyze = async () => {
+      setLoading('analysis');
+      try {
+        const result = await analyzeDiscrepancy({
+          suspectText,
+          consensusText,
+          includeStats: false
+        });
+        setAnalysis(result.data);
+        setLoading('');
+        setToast({ type: 'success', message: '✓ Analysis complete. Judge can now review and publish.' });
+      } catch (err) {
+        console.error('Auto-analysis error:', err);
+        setLoading('');
+        setToast({ type: 'warning', message: '⚠️ Analysis failed.' });
+      }
+    };
+
+    autoAnalyze();
+  }, [bounty, suspectText, consensusText, loading, analysis]);
 
   useEffect(() => {
     if (toast) {
