@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const app = initializeApp();
 const db = getFirestore(app);
+db.settings({ ignoreUndefinedProperties: true });
 
 // Gemini features now handled by Replit backend - Cloud Functions returns graceful fallbacks
 
