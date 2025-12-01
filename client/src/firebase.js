@@ -16,8 +16,8 @@ const db = getFirestore(app);
 // Cloud Functions for core features (bounties, DKG, consensus)
 const CLOUD_FUNCTIONS_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
 
-// Replit backend for Gemini features (stays permanently online)
-const REPLIT_BACKEND_URL = 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev';
+// Replit backend for Gemini features (stays permanently online, port 8000)
+const REPLIT_BACKEND_URL = 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:8000';
 
 const callFunction = async (endpoint, data) => {
   const url = `${CLOUD_FUNCTIONS_URL}${endpoint}`;
@@ -62,7 +62,7 @@ export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', da
 export const agentGuard = (data) => callFunction('/agentGuard', data);
 
 export const getBounties = async () => {
-  const url = `${API_BASE_URL}/getBounties`;
+  const url = `${CLOUD_FUNCTIONS_URL}/getBounties`;
   
   try {
     const response = await fetch(url);

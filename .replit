@@ -18,6 +18,10 @@ author = "agent"
 task = "workflow.run"
 args = "frontend"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "backend"
+
 [[workflows.workflow]]
 name = "frontend"
 author = "agent"
@@ -29,6 +33,18 @@ outputType = "webview"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 3000

@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const port = 5000;
+const port = 8000;
 
 app.use(cors());
 app.use(express.json());
@@ -92,5 +92,5 @@ app.get('/health', (req, res) => {
 
 app.listen(port, () => {
   console.log(`✅ Community Lens Gemini backend running on port ${port}`);
-  console.log(`📍 Public URL will be available at your Replit domain`);
+  console.log(`📍 Access at https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:${port}`);
 });
