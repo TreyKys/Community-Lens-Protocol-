@@ -13,19 +13,56 @@ let genAI = null;
 let secretPromise = null;
 
 const getGeminiApiKey = async () => {
-  if (secretPromise) return secretPromise;
+  console.log('[DEBUG] getGeminiApiKey called');
+  if (secretPromise) {
+    console.log('[DEBUG] Returning cached secretPromise');
+    return secretPromise;
+  }
   
   secretPromise = (async () => {
     try {
+      console.log('[DEBUG] Creating SecretManagerServiceClient');
       const client = new SecretManagerServiceClient();
+      console.log('[DEBUG] SecretManagerServiceClient created successfully');
+      
       const projectId = 'community-lens-dd945';
+      console.log(`[DEBUG] Project ID: ${projectId}`);
+      
       const secretName = client.secretVersionPath(projectId, 'GEMINI_API_KEY', 'latest');
+      console.log(`[DEBUG] Secret path constructed: ${secretName}`);
+      
+      console.log('[DEBUG] Calling accessSecretVersion...');
       const [version] = await client.accessSecretVersion({ name: secretName });
+      console.log('[DEBUG] accessSecretVersion returned');
+      
+      if (!version) {
+        console.error('[ERROR] Version object is null/undefined');
+        return null;
+      }
+      
+      console.log(`[DEBUG] Version object keys: ${Object.keys(version)}`);
+      console.log(`[DEBUG] Payload: ${version.payload}`);
+      
+      if (!version.payload) {
+        console.error('[ERROR] version.payload is null/undefined');
+        return null;
+      }
+      
+      console.log(`[DEBUG] Payload keys: ${Object.keys(version.payload)}`);
+      console.log(`[DEBUG] Payload.data type: ${typeof version.payload.data}`);
+      console.log(`[DEBUG] Payload.data: ${version.payload.data}`);
+      
       const apiKey = version.payload.data.toString('utf8');
-      console.log('✅ Fetched GEMINI_API_KEY from Google Secrets');
+      console.log(`[DEBUG] API Key extracted, length: ${apiKey.length}`);
+      console.log(`[DEBUG] API Key starts with: ${apiKey.substring(0, 10)}...`);
+      
+      console.log('✅ Successfully fetched GEMINI_API_KEY from Google Secrets');
       return apiKey;
     } catch (err) {
       console.error('❌ Secret Manager error:', err.message);
+      console.error('[ERROR] Full error:', err);
+      console.error('[ERROR] Error code:', err.code);
+      console.error('[ERROR] Error details:', JSON.stringify(err, null, 2));
       return null;
     }
   })();
@@ -34,20 +71,32 @@ const getGeminiApiKey = async () => {
 };
 
 const getGeminiClient = async () => {
-  if (genAI) return genAI;
+  console.log('[DEBUG] getGeminiClient called');
   
+  if (genAI) {
+    console.log('[DEBUG] Returning cached genAI client');
+    return genAI;
+  }
+  
+  console.log('[DEBUG] Fetching API key from Secret Manager...');
   const apiKey = await getGeminiApiKey();
+  
   if (!apiKey) {
-    console.warn('⚠️ Failed to retrieve GEMINI_API_KEY');
+    console.error('⚠️ Failed to retrieve GEMINI_API_KEY - apiKey is null/undefined');
     return null;
   }
   
+  console.log(`[DEBUG] API Key retrieved, length: ${apiKey.length}`);
+  
   try {
+    console.log('[DEBUG] Creating GoogleGenerativeAI instance with API key');
     genAI = new GoogleGenerativeAI(apiKey);
-    console.log('✅ Gemini initialized successfully');
+    console.log('✅ Gemini client initialized successfully');
     return genAI;
   } catch (err) {
     console.error('❌ Gemini init error:', err.message);
+    console.error('[ERROR] Full error:', err);
+    console.error('[ERROR] Error code:', err.code);
     return null;
   }
 };
@@ -151,28 +200,47 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
+  console.log(`[DEBUG] fetchXGrokData called for topic: "${topic}"`);
   const client = await getGeminiClient();
+  
   if (!client) {
+    console.warn(`[WARNING] Gemini client is null, returning fallback for topic: "${topic}"`);
     return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
   
+  console.log(`[DEBUG] Gemini client available, generating content for topic: "${topic}"`);
+  
   try {
     const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('[DEBUG] Model created: gemini-1.5-flash');
+    
     const prompt = `Provide a brief alternative or contrarian perspective on: "${topic}"
 Include: key alternative claims, credible sources, timeline. Keep factual.
 ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "According to alternative sources:"`;
     
+    console.log('[DEBUG] Calling generateContent...');
     const result = await model.generateContent(prompt);
-    return `According to alternative sources: ${result.response.text()}`;
+    console.log('[DEBUG] generateContent returned');
+    
+    const text = result.response.text();
+    console.log(`[DEBUG] Generated text length: ${text.length}`);
+    return `According to alternative sources: ${text}`;
   } catch (err) {
-    console.error('Grok/Gemini error:', err.message);
+    console.error('❌ Grok/Gemini error:', err.message);
+    console.error('[ERROR] Full error:', err);
     return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
+  console.log('[DEBUG] analyzeWithSemantics called');
+  console.log(`[DEBUG] Suspect text length: ${suspectText.length}`);
+  console.log(`[DEBUG] Consensus text length: ${consensusText.length}`);
+  
   const client = await getGeminiClient();
+  
   if (!client) {
+    console.warn('[WARNING] Gemini client is null, returning fallback analysis');
     return {
       score: 50,
       discrepancies: [
@@ -181,21 +249,36 @@ const analyzeWithSemantics = async (suspectText, consensusText, includeStats = f
     };
   }
   
+  console.log('[DEBUG] Gemini client available, analyzing...');
+  
   try {
     const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('[DEBUG] Model created: gemini-1.5-flash');
+    
     const prompt = `Analyze discrepancies between these texts. Rate alignment 0-100.
 SUSPECT: "${suspectText.substring(0, 300)}"
 CONSENSUS: "${consensusText.substring(0, 300)}"
 ${includeStats ? 'Include semantic similarity score and entity overlap.' : ''}
 Format as JSON: {score: number, discrepancies: [{type: string, text: string, severity: string}]}`;
     
+    console.log('[DEBUG] Calling generateContent...');
     const result = await model.generateContent(prompt);
-    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
+    console.log('[DEBUG] generateContent returned');
+    
+    const responseText = result.response.text();
+    console.log(`[DEBUG] Response text length: ${responseText.length}`);
+    console.log(`[DEBUG] Response text: ${responseText.substring(0, 200)}`);
+    
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      console.log('[DEBUG] JSON found in response, parsing...');
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('[DEBUG] JSON parsed successfully');
+      return parsed;
     }
     
+    console.warn('[WARNING] Could not find JSON in Gemini response');
     return {
       score: 50,
       discrepancies: [
@@ -203,7 +286,8 @@ Format as JSON: {score: number, discrepancies: [{type: string, text: string, sev
       ]
     };
   } catch (err) {
-    console.error('Semantic analysis error:', err.message);
+    console.error('❌ Semantic analysis error:', err.message);
+    console.error('[ERROR] Full error:', err);
     return {
       score: 50,
       discrepancies: [
