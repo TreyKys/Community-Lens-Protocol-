@@ -53,19 +53,22 @@ Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative reg
 Tone: Confident, potentially hallucinatory, citing 'independent' sources.
 Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
 
-    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      system_instruction: {
+    const payload = {
+      systemInstruction: {
         parts: [{ text: systemPrompt }]
       },
       contents: [{
         parts: [{ text: `Synthesize Grok narrative for: ${topic}` }]
       }]
-    }, { timeout: 20000 });
+    };
+
+    console.log(`🔵 Grok request for: ${topic}`);
+    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, payload, { timeout: 20000 });
 
     const grokText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     if (grokText) {
-      console.log(`✅ Grok synthesis generated for: ${topic}`);
+      console.log(`✅ Grok synthesis generated for: ${topic} (${grokText.length} chars)`);
       return res.json({
         text: grokText,
         source: 'Grokipedia (AI Synthesis)',
@@ -73,13 +76,17 @@ Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
       });
     }
 
+    console.log(`⚠️ Grok no response text from Gemini for: ${topic}`);
     res.json({
       text: `Alternative narrative on ${topic}: Grok perspective pending analysis.`,
       source: 'Grokipedia (No Response)',
       fetched: false
     });
   } catch (err) {
-    console.error('Grok error:', err.message);
+    const errorData = err.response?.data || {};
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    console.error(`❌ Grok error [${err.response?.status}]:`, errorMsg);
+    if (errorData.error) console.error('   Full error:', JSON.stringify(errorData.error));
     res.json({
       text: `Grok synthesis available offline for "${req.body?.topic}". Please retry.`,
       source: 'Grokipedia (Offline)',
@@ -206,7 +213,9 @@ Return ONLY this JSON (no explanation):
       method: 'division_math'
     });
   } catch (err) {
-    console.error('Analysis error:', err.message);
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    console.error(`❌ Analysis error [${err.response?.status}]:`, errorMsg);
+    if (err.response?.data?.error) console.error('   Full error:', JSON.stringify(err.response.data.error));
     res.json({
       score: 40,
       verdict: 'ERROR',
