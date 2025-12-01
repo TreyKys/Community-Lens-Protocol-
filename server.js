@@ -45,7 +45,11 @@ app.post('/api/grok', async (req, res) => {
     const cached = grokipediaCache.get(topic.toLowerCase());
     if (cached) {
       console.log(`✅ Returning cached REAL Grokipedia data for: ${topic}`);
-      return res.json({ ...cached, fetched: true, source: 'Grokipedia (Real Cached Data)' });
+      return res.json({ 
+        text: cached.data || cached.source,
+        source: 'Grokipedia (Cached Real Data)',
+        fetched: true
+      });
     }
 
     // Try direct Grokipedia endpoints
@@ -57,7 +61,7 @@ app.post('/api/grok', async (req, res) => {
     for (const endpoint of endpoints) {
       try {
         const response = await axios.get(endpoint, {
-          timeout: 3000,
+          timeout: 2000,
           headers: {
             'User-Agent': 'Community-Lens-Real-Data/1.0',
             'Accept': 'application/json'
@@ -65,11 +69,11 @@ app.post('/api/grok', async (req, res) => {
         });
         if (response.data) {
           console.log(`✅ REAL Grokipedia data fetched from: ${endpoint}`);
+          const dataText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data).substring(0, 500);
           return res.json({
+            text: dataText,
             source: 'Grokipedia (Real Data)',
-            data: response.data,
-            fetched: true,
-            endpoint: endpoint
+            fetched: true
           });
         }
       } catch (e) {
@@ -77,16 +81,19 @@ app.post('/api/grok', async (req, res) => {
       }
     }
 
-    // Fallback: return instruction for caching
+    // Fallback: return placeholder so UI shows something
     res.json({
+      text: `[Grokipedia data not available for "${topic}"] Provide real Grokipedia data via POST /api/grok/cache`,
       source: 'Grokipedia (Unavailable)',
-      data: null,
-      fetched: false,
-      instruction: `Grokipedia API not accessible. Provide real data via: POST /api/grok/cache with topic and data`
+      fetched: false
     });
   } catch (err) {
     console.error('Grokipedia fetch error:', err.message);
-    res.status(500).json({ error: 'Grokipedia fetch failed', message: err.message });
+    res.json({ 
+      text: `[Grokipedia Error: ${err.message}]`,
+      source: 'Grokipedia (Error)',
+      fetched: false 
+    });
   }
 });
 
@@ -138,30 +145,23 @@ app.post('/api/wikipedia', async (req, res) => {
     if (page.extract) {
       console.log(`✅ REAL Wikipedia data fetched: ${page.title}`);
       return res.json({
+        text: page.extract,
         source: 'Wikipedia (Real Data)',
-        title: page.title,
-        data: page.extract,
-        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
         fetched: true
       });
     }
 
     // Fallback with cached consensus data if article not found
     res.json({
-      source: 'Wikipedia (Cached Consensus)',
-      title: topic,
-      data: `Consensus information for ${topic}: Research suggests this topic requires further verification from authoritative sources.`,
-      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(topic)}`,
-      fetched: false,
-      cached: true
+      text: `[Limited Wikipedia data available for "${topic}"] Further research needed from authoritative sources.`,
+      source: 'Wikipedia (Limited Data)',
+      fetched: false
     });
   } catch (err) {
     console.error('Wikipedia fetch error:', err.message);
     // Fallback consensus data
     res.json({
-      source: 'Wikipedia (Fallback Consensus)',
-      title: req.body.topic,
-      data: `Mainstream consensus for ${req.body.topic}: Most authoritative sources indicate this requires peer-reviewed verification.`,
+      text: `[No Wikipedia data found for "${req.body.topic}"] Consider using alternative sources.`,
       fetched: false,
       error: err.message
     });
