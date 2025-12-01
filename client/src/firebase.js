@@ -16,8 +16,10 @@ const db = getFirestore(app);
 // Cloud Functions for core features (bounties, DKG, consensus)
 const CLOUD_FUNCTIONS_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
 
-// Replit backend for Gemini features (stays permanently online, port 3000)
-const REPLIT_BACKEND_URL = 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:3000';
+// Replit backend for Gemini features (accessible via localhost in dev, public URL in production)
+const REPLIT_BACKEND_URL = import.meta.env.DEV 
+  ? 'http://localhost:8080'
+  : 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:8080';
 
 const callFunction = async (endpoint, data) => {
   const url = `${CLOUD_FUNCTIONS_URL}${endpoint}`;

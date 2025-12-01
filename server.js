@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
@@ -90,7 +90,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', gemini: genAI ? 'active' : 'inactive' });
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`✅ Community Lens Gemini backend running on port ${port}`);
-  console.log(`📍 Access at https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:${port}`);
+  console.log(`📍 Publicly accessible at: https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:${port}`);
+  console.log(`📍 Gemini features: /api/grok and /api/analyze`);
 });
