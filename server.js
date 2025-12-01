@@ -36,7 +36,7 @@ const waitForRateLimit = async () => {
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/grok', async (req, res) => {
   try {
-    const { topic } = req.body;
+    const { topic } = req.body.data || req.body;
     
     if (!GEMINI_API_KEY) {
       return res.json({
@@ -107,7 +107,7 @@ Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/wikipedia', async (req, res) => {
   try {
-    const { topic } = req.body;
+    const { topic } = req.body.data || req.body;
 
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
@@ -136,17 +136,51 @@ app.post('/api/wikipedia', async (req, res) => {
       });
     }
 
-    console.log(`⚠️ Wikipedia article not found: ${topic}`);
+    // Wikipedia not found - fallback to Gemini semantic analysis
+    console.log(`⚠️ Wikipedia article not found for "${topic}". Falling back to Gemini semantic analysis...`);
+    
+    if (!GEMINI_API_KEY) {
+      return res.json({
+        text: `Consensus analysis for "${topic}": Limited authoritative data available.`,
+        source: 'Semantic Analysis (No API)',
+        fetched: false
+      });
+    }
+
+    await waitForRateLimit();
+
+    const semanticPrompt = `Provide a factual, consensus-based summary about "${topic}". 
+Focus on mainstream scientific/academic understanding, peer-reviewed research, and established facts.
+Be objective and cite only widely-accepted information. 
+Return 2-3 sentences summarizing the consensus view.`;
+
+    const semanticResponse = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+      contents: [{
+        parts: [{ text: semanticPrompt }]
+      }]
+    }, { timeout: 15000 });
+
+    const semanticText = semanticResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (semanticText) {
+      console.log(`✅ Gemini semantic analysis for "${topic}"`);
+      return res.json({
+        text: semanticText,
+        source: 'Semantic Analysis (Gemini)',
+        fetched: true
+      });
+    }
+
     res.json({
-      text: `Wikipedia article for "${topic}" not found or insufficient data.`,
-      source: 'Wikipedia (Not Found)',
+      text: `Consensus sources on "${topic}": Limited authoritative data available.`,
+      source: 'Semantic Analysis (Fallback)',
       fetched: false
     });
   } catch (err) {
-    console.error('Wikipedia error:', err.message);
+    console.error('Wikipedia/Semantic error:', err.message);
     res.json({
-      text: `Wikipedia lookup unavailable for "${req.body?.topic}".`,
-      source: 'Wikipedia (Error)',
+      text: `Analysis for "${(req.body.data || req.body)?.topic}" pending. Please retry.`,
+      source: 'Analysis (Error)',
       fetched: false
     });
   }
@@ -157,7 +191,7 @@ app.post('/api/wikipedia', async (req, res) => {
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/analyze', async (req, res) => {
   try {
-    const { suspectText, consensusText } = req.body;
+    const { suspectText, consensusText } = req.body.data || req.body;
 
     if (!suspectText || !consensusText) {
       return res.status(400).json({ error: 'Missing suspectText or consensusText' });
