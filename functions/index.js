@@ -206,14 +206,18 @@ const handleApi = async (req, res) => {
     // VERIFY & MINT - Poison pill activation
     if (path.includes('verifyAndMint')) {
       const { topic, bountyId, analysis, claim, suspectText, consensusText } = req.body.data || {};
+      if (!topic || !claim) {
+        return res.status(400).json({ error: 'Missing required fields: topic, claim' });
+      }
+      
       const dkgAssetId = `did:dkg:otp:2043/0x${Math.random().toString(16).substring(2, 18).toUpperCase()}`;
       
       const noteDoc = {
         topic: topic.toLowerCase(),
         claim,
-        analysis,
-        suspectText,
-        consensusText,
+        ...(analysis && { analysis }),
+        ...(suspectText && { suspectText }),
+        ...(consensusText && { consensusText }),
         dkgAssetId,
         status: 'PUBLISHED',
         blocked: true,
@@ -236,14 +240,19 @@ const handleApi = async (req, res) => {
     
     // AGENT GUARD - POISON PILL FIREWALL
     if (path.includes('agentGuard')) {
-      const { question } = req.body.data || {};
+      const { agentQuery, question } = req.body.data || {};
+      const queryText = (agentQuery || question || '').toString();
+      
+      if (!queryText) {
+        return res.status(400).json({ error: 'Missing required field: agentQuery or question' });
+      }
       
       const blockedTopics = await getBlockedTopics();
       let blocked = false;
       let blockingReason = null;
       
       for (const [blockedTopic, noteData] of blockedTopics.entries()) {
-        if (question.toLowerCase().includes(blockedTopic)) {
+        if (queryText.toLowerCase().includes(blockedTopic)) {
           blocked = true;
           blockingReason = noteData.dkgAssetId;
           break;
