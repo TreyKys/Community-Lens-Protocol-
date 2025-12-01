@@ -1,35 +1,49 @@
 import functions from 'firebase-functions';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Lazy initialize Gemini - try multiple sources
+// Lazy initialize Gemini - fetch from Firebase Secrets
 let genAI = null;
-const getGeminiClient = () => {
+let secretPromise = null;
+
+const getSecretFromManager = async () => {
+  if (secretPromise) return secretPromise;
+  
+  secretPromise = (async () => {
+    try {
+      const client = new SecretManagerServiceClient();
+      const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'community-lens-dd945';
+      const name = client.secretVersionPath(projectId, 'GEMINI_API_KEY', 'latest');
+      const [version] = await client.accessSecretVersion({ name });
+      return version.payload.data.toString();
+    } catch (err) {
+      console.error('Secret Manager error:', err.message);
+      return null;
+    }
+  })();
+  
+  return secretPromise;
+};
+
+const getGeminiClient = async () => {
   if (genAI) return genAI;
   
-  let apiKey = null;
+  let apiKey = process.env.GEMINI_API_KEY;
   
-  // Try 1: Direct env var (Firebase Secrets or Replit)
-  apiKey = process.env.GEMINI_API_KEY;
-  
-  // Try 2: Firebase runtime config
   if (!apiKey) {
-    try {
-      apiKey = functions.config()?.gemini?.api_key;
-    } catch (e) {
-      // Ignore
-    }
+    apiKey = await getSecretFromManager();
   }
   
   if (apiKey) {
     try {
       genAI = new GoogleGenerativeAI(apiKey);
-      console.log('✅ Gemini ready');
+      console.log('✅ Gemini initialized');
       return genAI;
     } catch (err) {
       console.error('Gemini error:', err.message);
@@ -37,7 +51,7 @@ const getGeminiClient = () => {
     }
   }
   
-  console.warn('GEMINI_API_KEY not configured');
+  console.warn('GEMINI_API_KEY not found');
   return null;
 };
 
@@ -140,9 +154,9 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
-  const client = getGeminiClient();
+  const client = await getGeminiClient();
   if (!client) {
-    return `According to alternative sources: Gemini API key not configured. Unable to fetch contrarian perspectives on ${topic}.`;
+    return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
   
   try {
@@ -160,12 +174,12 @@ ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "Acco
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
-  const client = getGeminiClient();
+  const client = await getGeminiClient();
   if (!client) {
     return {
       score: 50,
       discrepancies: [
-        { type: 'INCOMPLETE_ANALYSIS', text: 'Gemini API key not configured', severity: 'low' }
+        { type: 'ANALYSIS_ERROR', text: 'Semantic analysis unavailable', severity: 'low' }
       ]
     };
   }
