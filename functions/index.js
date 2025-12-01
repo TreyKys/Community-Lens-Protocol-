@@ -1,58 +1,32 @@
 import functions from 'firebase-functions';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Lazy initialize Gemini - fetch from Firebase Secrets
+// Initialize Gemini client
 let genAI = null;
-let secretPromise = null;
-
-const getSecretFromManager = async () => {
-  if (secretPromise) return secretPromise;
-  
-  secretPromise = (async () => {
-    try {
-      const client = new SecretManagerServiceClient();
-      const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'community-lens-dd945';
-      const name = client.secretVersionPath(projectId, 'GEMINI_API_KEY', 'latest');
-      const [version] = await client.accessSecretVersion({ name });
-      return version.payload.data.toString();
-    } catch (err) {
-      console.error('Secret Manager error:', err.message);
-      return null;
-    }
-  })();
-  
-  return secretPromise;
-};
-
-const getGeminiClient = async () => {
+const getGeminiClient = () => {
   if (genAI) return genAI;
   
-  let apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    apiKey = await getSecretFromManager();
+    console.warn('⚠️ GEMINI_API_KEY not configured');
+    return null;
   }
   
-  if (apiKey) {
-    try {
-      genAI = new GoogleGenerativeAI(apiKey);
-      console.log('✅ Gemini initialized');
-      return genAI;
-    } catch (err) {
-      console.error('Gemini error:', err.message);
-      return null;
-    }
+  try {
+    genAI = new GoogleGenerativeAI(apiKey);
+    console.log('✅ Gemini initialized');
+    return genAI;
+  } catch (err) {
+    console.error('❌ Gemini init failed:', err.message);
+    return null;
   }
-  
-  console.warn('GEMINI_API_KEY not found');
-  return null;
 };
 
 // POISON PILL CACHE - Permanent blocks
@@ -154,7 +128,7 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
-  const client = await getGeminiClient();
+  const client = getGeminiClient();
   if (!client) {
     return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
@@ -174,7 +148,7 @@ ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "Acco
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
-  const client = await getGeminiClient();
+  const client = getGeminiClient();
   if (!client) {
     return {
       score: 50,
