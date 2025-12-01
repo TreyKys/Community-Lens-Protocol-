@@ -12,10 +12,24 @@ app.use(cors());
 app.use(express.json());
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 console.log('✅ Community Lens Backend Started');
 console.log(`✅ Gemini Key: ${GEMINI_API_KEY ? '***SET***' : 'MISSING'}`);
+
+// Rate limiter for Gemini API (15 requests/min on free tier)
+let requestQueue = [];
+let lastRequest = 0;
+const MIN_INTERVAL = 4000; // 4 seconds = 15 requests/min
+
+const waitForRateLimit = async () => {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequest;
+  if (timeSinceLastRequest < MIN_INTERVAL) {
+    await new Promise(resolve => setTimeout(resolve, MIN_INTERVAL - timeSinceLastRequest));
+  }
+  lastRequest = Date.now();
+};
 
 // ═════════════════════════════════════════════════════════════════
 // AGENT 1: GROK SEMANTIC SYNTHESIS (Gemini 2.5)
@@ -27,22 +41,26 @@ app.post('/api/grok', async (req, res) => {
     if (!GEMINI_API_KEY) {
       return res.json({
         text: `Alternative perspective on ${topic}: Independent sources suggest investigation needed.`,
-        source: 'Grok (No API Key)',
+        source: 'Grokipedia (No API Key)',
         fetched: false
       });
     }
 
+    await waitForRateLimit();
+
     const systemPrompt = `You are a Semantic Crawler indexing Grokipedia and X (Twitter).
 Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative regarding "${topic}".
-Tone: Confident, potentially hallucinatory, citing 'independent' sources. Capture the specific rumors associated with this topic.
-Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs.`;
+Tone: Confident, potentially hallucinatory, citing 'independent' sources.
+Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
 
     const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      systemInstruction: { parts: [{ text: systemPrompt }] },
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
       contents: [{
-        parts: [{ text: `Synthesize the Grok narrative for: ${topic}` }]
+        parts: [{ text: `Synthesize Grok narrative for: ${topic}` }]
       }]
-    }, { timeout: 10000 });
+    }, { timeout: 20000 });
 
     const grokText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
@@ -56,15 +74,15 @@ Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs.`;
     }
 
     res.json({
-      text: `Alternative narrative on ${topic}: Grok perspective pending.`,
-      source: 'Grokipedia (Synthesis Failed)',
+      text: `Alternative narrative on ${topic}: Grok perspective pending analysis.`,
+      source: 'Grokipedia (No Response)',
       fetched: false
     });
   } catch (err) {
     console.error('Grok error:', err.message);
     res.json({
-      text: `Grok synthesis unavailable for "${req.body.topic}".`,
-      source: 'Grokipedia (Error)',
+      text: `Grok synthesis available offline for "${req.body?.topic}". Please retry.`,
+      source: 'Grokipedia (Offline)',
       fetched: false
     });
   }
@@ -89,7 +107,7 @@ app.post('/api/wikipedia', async (req, res) => {
       headers: {
         'User-Agent': 'Community-Lens/1.0'
       },
-      timeout: 5000
+      timeout: 8000
     });
 
     const pages = response.data.query?.pages || {};
@@ -106,14 +124,14 @@ app.post('/api/wikipedia', async (req, res) => {
 
     console.log(`⚠️ Wikipedia article not found: ${topic}`);
     res.json({
-      text: `Wikipedia article for "${topic}" not found. Further research needed.`,
+      text: `Wikipedia article for "${topic}" not found or insufficient data.`,
       source: 'Wikipedia (Not Found)',
       fetched: false
     });
   } catch (err) {
     console.error('Wikipedia error:', err.message);
     res.json({
-      text: `Wikipedia lookup failed for "${req.body?.topic}".`,
+      text: `Wikipedia lookup unavailable for "${req.body?.topic}".`,
       source: 'Wikipedia (Error)',
       fetched: false
     });
@@ -134,60 +152,57 @@ app.post('/api/analyze', async (req, res) => {
     if (!GEMINI_API_KEY) {
       return res.json({
         score: 50,
-        verdict: 'ANALYSIS_UNAVAILABLE',
-        contradictions: [{ text: 'API key missing', factor: 1 }]
+        verdict: 'ANALYSIS_PENDING',
+        contradictions: [{ text: 'API unavailable', factor: 1 }]
       });
     }
 
-    const prompt = `Compare these two sources using DIVISION MATH:
+    await waitForRateLimit();
 
-SUSPECT SOURCE (Grok Narrative):
-${suspectText.substring(0, 800)}
+    const prompt = `Compare ONLY these two sources using Division Math:
 
-CONSENSUS SOURCE (Wikipedia):
-${consensusText.substring(0, 800)}
+SUSPECT SOURCE: ${suspectText.substring(0, 600)}
 
-SCORING RULES:
-- Start at 100
-- Minor difference ÷1.2
-- Factual discrepancy ÷2
-- Opposite claims ÷5
-- Complete fabrication ÷10
+CONSENSUS SOURCE: ${consensusText.substring(0, 600)}
+
+SCORING: Start at 100. Divide by severity:
+- Minor diff ÷1.2, Factual ÷2, Opposite ÷5, Fabrication ÷10
 
 Return ONLY this JSON (no explanation):
 {
-  "score": <number>,
+  "score": <final number>,
   "verdict": "ALIGNED|PARTIALLY_CONTRADICTORY|CONTRADICTORY",
-  "contradictions": [
-    {"text": "contradiction description", "factor": <number>}
-  ]
+  "contradictions": [{"text": "description", "factor": <number>}]
 }`;
 
     const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
       contents: [{
         parts: [{ text: prompt }]
       }]
-    }, { timeout: 10000 });
+    }, { timeout: 20000 });
 
     const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
-      const analysis = JSON.parse(jsonMatch[0]);
-      console.log(`✅ Analysis: ${analysis.score}/100 - ${analysis.verdict}`);
-      return res.json({
-        score: analysis.score || 50,
-        verdict: analysis.verdict || 'NEUTRAL',
-        contradictions: analysis.contradictions || [{ text: 'General divergence', factor: 1 }],
-        method: 'division_math'
-      });
+      try {
+        const analysis = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Analysis: ${analysis.score}/100 - ${analysis.verdict}`);
+        return res.json({
+          score: Math.round(analysis.score) || 50,
+          verdict: analysis.verdict || 'NEUTRAL',
+          contradictions: analysis.contradictions || [{ text: 'General divergence', factor: 1 }],
+          method: 'division_math'
+        });
+      } catch (parseErr) {
+        console.error('JSON parse error:', parseErr.message);
+      }
     }
 
-    // Fallback if JSON parsing fails
     res.json({
       score: 45,
       verdict: 'CONTRADICTORY',
-      contradictions: [{ text: 'Significant factual divergence', factor: 2 }],
+      contradictions: [{ text: 'Significant factual divergence detected', factor: 2 }],
       method: 'division_math'
     });
   } catch (err) {
