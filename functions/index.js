@@ -7,24 +7,25 @@ import axios from 'axios';
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Initialize Gemini client
+// Initialize Gemini client - use Firebase runtime config
 let genAI = null;
 const getGeminiClient = () => {
   if (genAI) return genAI;
   
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    console.warn('⚠️ GEMINI_API_KEY not configured');
-    return null;
-  }
-  
   try {
+    const config = functions.config();
+    const apiKey = config.gemini?.api_key || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('⚠️ GEMINI_API_KEY not found in runtime config or env');
+      return null;
+    }
+    
     genAI = new GoogleGenerativeAI(apiKey);
-    console.log('✅ Gemini initialized');
+    console.log('✅ Gemini initialized from Firebase config');
     return genAI;
   } catch (err) {
-    console.error('❌ Gemini init failed:', err.message);
+    console.error('❌ Gemini init error:', err.message);
     return null;
   }
 };

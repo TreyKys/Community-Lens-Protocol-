@@ -36,10 +36,7 @@
   "functions": [
     {
       "source": "functions",
-      "codebase": "default",
-      "environmentVariables": {
-        "GEMINI_API_KEY": "AIzaSyD1DcF24HWQKslGkN4mwXJK8Bviqnnp_8M"
-      }
+      "codebase": "default"
     }
   ],
   "emulators": {
