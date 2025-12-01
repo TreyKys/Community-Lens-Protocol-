@@ -11,13 +11,13 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Initialize with API key from environment
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyC1Kaweh-kiWJWO-lXKfYdYwSl6BvUEOZ0';
+// Initialize with API key from environment ONLY - NO FALLBACK
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
 console.log('✅ Community Lens Gemini backend initialized');
 console.log('✅ Architecture: REAL Grokipedia vs REAL Wikipedia → Gemini Comparison Only');
-console.log(`✅ Gemini API Key: ${GEMINI_API_KEY ? 'Active' : 'NOT SET'}`);
+console.log(`✅ Using environment-only API key: ${GEMINI_API_KEY ? '***PROTECTED***' : 'NOT SET'}`);
 
 // ═════════════════════════════════════════════════════════════════
 // CRITICAL: This is NOT Gemini simulation vs Wikipedia
