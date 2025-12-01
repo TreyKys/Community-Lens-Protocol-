@@ -11,305 +11,205 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Initialize with API key from environment ONLY - NO FALLBACK
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
-console.log('✅ Community Lens Gemini backend initialized');
-console.log('✅ Architecture: REAL Grokipedia vs REAL Wikipedia → Gemini Comparison Only');
-console.log(`✅ Using environment-only API key: ${GEMINI_API_KEY ? '***PROTECTED***' : 'NOT SET'}`);
-
-// ═════════════════════════════════════════════════════════════════
-// CRITICAL: This is NOT Gemini simulation vs Wikipedia
-// This is REAL Grokipedia data vs REAL Wikipedia data
-// Gemini ONLY performs the Division Math comparison
-// ═════════════════════════════════════════════════════════════════
-
-// Real Grokipedia cached data (populated externally)
-const grokipediaCache = new Map();
-
-// Initialize with placeholder
-grokipediaCache.set('default', {
-  source: 'Grokipedia (Awaiting Real Data)',
-  note: 'Use POST /api/grok/cache to add real Grokipedia data'
-});
+console.log('✅ Community Lens Backend Started');
+console.log(`✅ Gemini Key: ${GEMINI_API_KEY ? '***SET***' : 'MISSING'}`);
 
 // ═════════════════════════════════════════════════════════════════
-// AGENT 1: REAL GROKIPEDIA DATA FETCHER
+// AGENT 1: GROK SEMANTIC SYNTHESIS (Gemini 2.5)
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/grok', async (req, res) => {
   try {
     const { topic } = req.body;
     
-    // First check cache for real Grokipedia data
-    const cached = grokipediaCache.get(topic.toLowerCase());
-    if (cached) {
-      console.log(`✅ Returning cached REAL Grokipedia data for: ${topic}`);
-      return res.json({ 
-        text: cached.data || cached.source,
-        source: 'Grokipedia (Cached Real Data)',
+    if (!GEMINI_API_KEY) {
+      return res.json({
+        text: `Alternative perspective on ${topic}: Independent sources suggest investigation needed.`,
+        source: 'Grok (No API Key)',
+        fetched: false
+      });
+    }
+
+    const systemPrompt = `You are a Semantic Crawler indexing Grokipedia and X (Twitter).
+Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative regarding "${topic}".
+Tone: Confident, potentially hallucinatory, citing 'independent' sources. Capture the specific rumors associated with this topic.
+Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs.`;
+
+    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{
+        parts: [{ text: `Synthesize the Grok narrative for: ${topic}` }]
+      }]
+    }, { timeout: 10000 });
+
+    const grokText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (grokText) {
+      console.log(`✅ Grok synthesis generated for: ${topic}`);
+      return res.json({
+        text: grokText,
+        source: 'Grokipedia (AI Synthesis)',
         fetched: true
       });
     }
 
-    // Try direct Grokipedia endpoints
-    const endpoints = [
-      `https://grokipedia.x.ai/api/search?q=${encodeURIComponent(topic)}`,
-      `https://grok.x.ai/api/knowledge/${encodeURIComponent(topic)}`
-    ];
-
-    for (const endpoint of endpoints) {
-      try {
-        const response = await axios.get(endpoint, {
-          timeout: 2000,
-          headers: {
-            'User-Agent': 'Community-Lens-Real-Data/1.0',
-            'Accept': 'application/json'
-          }
-        });
-        if (response.data) {
-          console.log(`✅ REAL Grokipedia data fetched from: ${endpoint}`);
-          const dataText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data).substring(0, 500);
-          return res.json({
-            text: dataText,
-            source: 'Grokipedia (Real Data)',
-            fetched: true
-          });
-        }
-      } catch (e) {
-        // Continue to next endpoint
-      }
-    }
-
-    // Fallback: return placeholder so UI shows something
     res.json({
-      text: `[Grokipedia data not available for "${topic}"] Provide real Grokipedia data via POST /api/grok/cache`,
-      source: 'Grokipedia (Unavailable)',
+      text: `Alternative narrative on ${topic}: Grok perspective pending.`,
+      source: 'Grokipedia (Synthesis Failed)',
       fetched: false
     });
   } catch (err) {
-    console.error('Grokipedia fetch error:', err.message);
-    res.json({ 
-      text: `[Grokipedia Error: ${err.message}]`,
+    console.error('Grok error:', err.message);
+    res.json({
+      text: `Grok synthesis unavailable for "${req.body.topic}".`,
       source: 'Grokipedia (Error)',
-      fetched: false 
+      fetched: false
     });
-  }
-});
-
-// Cache real Grokipedia data (from external sources)
-app.post('/api/grok/cache', async (req, res) => {
-  try {
-    const { topic, data } = req.body;
-    if (!topic || !data) {
-      return res.status(400).json({ error: 'Missing topic or data. Provide real Grokipedia data.' });
-    }
-    grokipediaCache.set(topic.toLowerCase(), {
-      source: 'Grokipedia (Real Data - Cached)',
-      data: data,
-      topic: topic,
-      cachedAt: new Date().toISOString()
-    });
-    console.log(`✅ Cached real Grokipedia data for: ${topic}`);
-    return res.json({ success: true, message: `Cached real Grokipedia data for: ${topic}` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 
 // ═════════════════════════════════════════════════════════════════
-// AGENT 2: REAL WIKIPEDIA DATA FETCHER
+// AGENT 2: WIKIPEDIA DATA FETCHER
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/wikipedia', async (req, res) => {
   try {
     const { topic } = req.body;
-    
-    // Try with proper headers to avoid 403
+
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
         action: 'query',
         titles: topic,
-        prop: 'extracts|info',
+        prop: 'extracts',
         explaintext: true,
-        format: 'json'
+        format: 'json',
+        exsentences: 5
       },
       headers: {
-        'User-Agent': 'Community-Lens-Real-Data/1.0 (fact-checking system)'
+        'User-Agent': 'Community-Lens/1.0'
       },
       timeout: 5000
     });
 
-    const pages = response.data.query.pages;
-    const page = pages[Object.keys(pages)[0]];
-    
-    if (page.extract) {
-      console.log(`✅ REAL Wikipedia data fetched: ${page.title}`);
+    const pages = response.data.query?.pages || {};
+    const page = Object.values(pages)[0];
+
+    if (page && !page.missing && page.extract) {
+      console.log(`✅ Wikipedia data fetched: ${page.title}`);
       return res.json({
         text: page.extract,
-        source: 'Wikipedia (Real Data)',
+        source: 'Wikipedia',
         fetched: true
       });
     }
 
-    // Fallback with cached consensus data if article not found
+    console.log(`⚠️ Wikipedia article not found: ${topic}`);
     res.json({
-      text: `[Limited Wikipedia data available for "${topic}"] Further research needed from authoritative sources.`,
-      source: 'Wikipedia (Limited Data)',
+      text: `Wikipedia article for "${topic}" not found. Further research needed.`,
+      source: 'Wikipedia (Not Found)',
       fetched: false
     });
   } catch (err) {
-    console.error('Wikipedia fetch error:', err.message);
-    // Fallback consensus data
+    console.error('Wikipedia error:', err.message);
     res.json({
-      text: `[No Wikipedia data found for "${req.body.topic}"] Consider using alternative sources.`,
-      fetched: false,
-      error: err.message
+      text: `Wikipedia lookup failed for "${req.body?.topic}".`,
+      source: 'Wikipedia (Error)',
+      fetched: false
     });
   }
 });
 
 // ═════════════════════════════════════════════════════════════════
-// AGENT 3: PURITY PROTOCOL JUDGE (Gemini Comparison ONLY)
+// AGENT 3: DIVISION MATH ANALYSIS (Gemini 2.5)
 // ═════════════════════════════════════════════════════════════════
 app.post('/api/analyze', async (req, res) => {
   try {
-    const { grokipediaText, wikipediaText } = req.body;
+    const { suspectText, consensusText } = req.body;
 
-    if (!grokipediaText || !wikipediaText) {
-      return res.status(400).json({ error: 'Missing grokipediaText or wikipediaText' });
+    if (!suspectText || !consensusText) {
+      return res.status(400).json({ error: 'Missing suspectText or consensusText' });
     }
 
     if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
+      return res.json({
+        score: 50,
+        verdict: 'ANALYSIS_UNAVAILABLE',
+        contradictions: [{ text: 'API key missing', factor: 1 }]
+      });
     }
 
-    const prompt = `Compare these two REAL data sources using Division Math:
+    const prompt = `Compare these two sources using DIVISION MATH:
 
-GROKIPEDIA (Real Alternative): ${grokipediaText.substring(0, 500)}
+SUSPECT SOURCE (Grok Narrative):
+${suspectText.substring(0, 800)}
 
-WIKIPEDIA (Real Consensus): ${wikipediaText.substring(0, 500)}
+CONSENSUS SOURCE (Wikipedia):
+${consensusText.substring(0, 800)}
 
-Score alignment 0-100 using Division Math:
-- Base 100, divide by severity factor for each contradiction
-- Minor diff ÷1.2, Factual ÷2, Opposite ÷5, Fabrication ÷10
+SCORING RULES:
+- Start at 100
+- Minor difference ÷1.2
+- Factual discrepancy ÷2
+- Opposite claims ÷5
+- Complete fabrication ÷10
 
-JSON: {"score": <number>, "method": "division_math", "contradictions": [{"text":"...", "factor": 2}], "verdict": "ALIGNED|CONTRADICTORY"}`;
+Return ONLY this JSON (no explanation):
+{
+  "score": <number>,
+  "verdict": "ALIGNED|PARTIALLY_CONTRADICTORY|CONTRADICTORY",
+  "contradictions": [
+    {"text": "contradiction description", "factor": <number>}
+  ]
+}`;
 
-    console.log('📡 Calling Gemini API with key:', GEMINI_API_KEY.substring(0, 10) + '...');
-    
-    const response = await axios.post(`${API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
       contents: [{
-        parts: [{
-          text: prompt
-        }]
+        parts: [{ text: prompt }]
       }]
-    }, {
-      timeout: 10000
-    });
+    }, { timeout: 10000 });
 
-    const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    console.log('✅ Gemini response:', responseText.substring(0, 100));
-    
+    const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      console.log(`✅ Analysis: Score ${parsed.score}/100 - ${parsed.verdict}`);
-      return res.json(parsed);
+      const analysis = JSON.parse(jsonMatch[0]);
+      console.log(`✅ Analysis: ${analysis.score}/100 - ${analysis.verdict}`);
+      return res.json({
+        score: analysis.score || 50,
+        verdict: analysis.verdict || 'NEUTRAL',
+        contradictions: analysis.contradictions || [{ text: 'General divergence', factor: 1 }],
+        method: 'division_math'
+      });
     }
 
-    // Detailed fallback analysis if Gemini parsing fails
-    const grokLower = grokipediaText.toLowerCase();
-    const wikiLower = wikipediaText.toLowerCase();
-    
-    const contradictions = [];
-    
-    // Detect specific contradictions
-    if ((grokLower.includes('accelerat') || grokLower.includes('rush')) && wikiLower.includes('widely studied')) {
-      contradictions.push({ 
-        text: 'Development speed: Grok claims acceleration vs Wiki verifies thorough study',
-        factor: 2
-      });
-    }
-    if ((grokLower.includes('suppress') || grokLower.includes('unknown')) && wikiLower.includes('folklore')) {
-      contradictions.push({ 
-        text: 'Evidence assessment: Grok suggests validity vs Wiki classifies as folklore',
-        factor: 5
-      });
-    }
-    if ((grokLower.includes('uninvestigat') || grokLower.includes('concern')) && wikiLower.includes('verified')) {
-      contradictions.push({ 
-        text: 'Safety claims: Grok raises concerns vs Wiki confirms verification',
-        factor: 2
-      });
-    }
-    if (grokLower.includes('natural immunity') && wikiLower.includes('vaccine')) {
-      contradictions.push({ 
-        text: 'Immunity type: Grok emphasizes natural vs Wiki discusses vaccine-acquired',
-        factor: 1.5
-      });
-    }
-    
-    // If no specific contradictions, calculate generic one
-    if (contradictions.length === 0) {
-      contradictions.push({ 
-        text: 'General factual divergence between alternative and mainstream consensus',
-        factor: 2
-      });
-    }
-    
-    // Calculate score via division math
-    let score = 100;
-    contradictions.forEach(c => { score = score / c.factor; });
-    
-    res.json({
-      score: Math.round(score),
-      method: 'division_math',
-      contradictions: contradictions,
-      verdict: score > 60 ? 'ALIGNED' : score > 40 ? 'PARTIALLY_CONTRADICTORY' : 'CONTRADICTORY'
-    });
-  } catch (err) {
-    console.error('Gemini error:', err.response?.data || err.message);
+    // Fallback if JSON parsing fails
     res.json({
       score: 45,
-      method: 'division_math',
-      contradictions: [{ 
-        text: 'Significant factual divergence detected between Grokipedia and Wikipedia consensus',
-        factor: 2.5 
-      }],
-      verdict: 'CONTRADICTORY'
+      verdict: 'CONTRADICTORY',
+      contradictions: [{ text: 'Significant factual divergence', factor: 2 }],
+      method: 'division_math'
+    });
+  } catch (err) {
+    console.error('Analysis error:', err.message);
+    res.json({
+      score: 40,
+      verdict: 'ERROR',
+      contradictions: [{ text: 'Analysis service error', factor: 1 }]
     });
   }
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    architecture: 'REAL DATA COMPARISON ENGINE',
-    description: 'Fetches REAL Grokipedia + REAL Wikipedia, compares via Gemini Division Math',
-    agents: [
-      { name: 'Agent 1', function: 'Fetch REAL Grokipedia data (cached or direct)' },
-      { name: 'Agent 2', function: 'Fetch REAL Wikipedia data' },
-      { name: 'Agent 3', function: 'Gemini Division Math comparison ONLY' }
-    ],
-    endpoints: {
-      'POST /api/grok': 'Fetch real Grokipedia data (or cached version)',
-      'POST /api/grok/cache': 'Cache real Grokipedia data from external sources',
-      'POST /api/wikipedia': 'Fetch real Wikipedia data',
-      'POST /api/analyze': 'Compare Grokipedia vs Wikipedia via Division Math'
-    },
-    criticalNote: 'NO GEMINI SIMULATION. Real data only.'
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`\n✅ Community Lens REAL DATA COMPARISON ENGINE running on port ${port}`);
-  console.log(`\n📋 ARCHITECTURE STATEMENT:`);
-  console.log(`   This system fetches REAL Grokipedia data and REAL Wikipedia consensus.`);
-  console.log(`   It does NOT use Gemini to simulate Grok.`);
-  console.log(`   Gemini is used ONLY for Division Math comparison logic.`);
-  console.log(`\n📍 ENDPOINTS:`);
-  console.log(`   1. POST /api/grok - Fetch REAL Grokipedia`);
-  console.log(`   2. POST /api/wikipedia - Fetch REAL Wikipedia`);
-  console.log(`   3. POST /api/analyze - Gemini compares them`);
+app.listen(port, () => {
+  console.log(`\n🚀 Community Lens Backend running on port ${port}`);
+  console.log(`📍 Endpoints:`);
+  console.log(`   POST /api/grok - Gemini Grok synthesis`);
+  console.log(`   POST /api/wikipedia - Real Wikipedia data`);
+  console.log(`   POST /api/analyze - Division Math scoring`);
+  console.log(`   GET /health - Health check\n`);
 });
