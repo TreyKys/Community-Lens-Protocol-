@@ -51,10 +51,7 @@ export const getBounties = async () => {
     return result;
   } catch (error) {
     console.error('Bounties error:', error);
-    return { data: [
-      { id: '1', topic: 'Malaria Vaccine R21', claim: 'WHO approved vaccine', reward: 500, status: 'OPEN', context: 'Medical' },
-      { id: '2', topic: 'Lagos-Abuja Hyperloop', claim: 'Transit project', reward: 100, status: 'OPEN', context: 'Infrastructure' }
-    ]};
+    throw error;
   }
 };
 
