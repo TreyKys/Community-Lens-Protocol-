@@ -12,41 +12,32 @@ let genAI = null;
 const getGeminiClient = () => {
   if (genAI) return genAI;
   
-  try {
-    // Try 1: Firebase runtime config (for deployed with firebase config set)
-    let apiKey = null;
+  let apiKey = null;
+  
+  // Try 1: Direct env var (Firebase Secrets or Replit)
+  apiKey = process.env.GEMINI_API_KEY;
+  
+  // Try 2: Firebase runtime config
+  if (!apiKey) {
     try {
       apiKey = functions.config()?.gemini?.api_key;
     } catch (e) {
-      // Firebase config might not be available
+      // Ignore
     }
-    
-    // Try 2: Environment variables (Replit secrets become env vars)
-    if (!apiKey) {
-      apiKey = process.env.GEMINI_API_KEY;
-    }
-    
-    // Try 3: Direct import from .env.local (development)
-    if (!apiKey && process.env.NODE_ENV !== 'production') {
-      try {
-        const dotenv = require('dotenv');
-        dotenv.config({ path: '.env.local' });
-        apiKey = process.env.GEMINI_API_KEY;
-      } catch (e) {
-        // .env not available
-      }
-    }
-    
-    if (apiKey) {
-      genAI = new GoogleGenerativeAI(apiKey);
-      console.log('✅ Gemini initialized successfully');
-      return genAI;
-    } else {
-      console.warn('⚠️ GEMINI_API_KEY not found in any source');
-    }
-  } catch (err) {
-    console.error('❌ Failed to initialize Gemini:', err.message);
   }
+  
+  if (apiKey) {
+    try {
+      genAI = new GoogleGenerativeAI(apiKey);
+      console.log('✅ Gemini ready');
+      return genAI;
+    } catch (err) {
+      console.error('Gemini error:', err.message);
+      return null;
+    }
+  }
+  
+  console.warn('GEMINI_API_KEY not configured');
   return null;
 };
 
