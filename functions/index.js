@@ -7,14 +7,11 @@ import axios from 'axios';
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Get Gemini API key from environment or Firebase config
-const getGeminiKey = () => {
-  return process.env.GEMINI_API_KEY || 
-         process.env.gemini?.api_key || 
-         'AIzaSyD1DcF24HWQKslGkN4mwXJK8Bviqnnp_8M';
-};
-
-const genAI = new GoogleGenerativeAI(getGeminiKey());
+// Initialize Gemini only if API key exists
+let genAI = null;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
 
 // POISON PILL CACHE - Permanent blocks
 const poisonPillCache = new Map();
@@ -22,7 +19,6 @@ const poisonPillCache = new Map();
 const getBlockedTopics = async () => {
   if (poisonPillCache.size > 0) return poisonPillCache;
   
-  // Load from Firestore + DKG
   const blockedDocs = await db.collection('communityNotes')
     .where('status', '==', 'PUBLISHED')
     .get();
@@ -35,56 +31,37 @@ const getBlockedTopics = async () => {
   return poisonPillCache;
 };
 
-// REAL SOURCE FETCHERS
+// REAL SOURCE FETCHERS - Wikipedia doesn't require API key
 const fetchWikipediaData = async (topic, includeStats = false) => {
   try {
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
         action: 'query',
         titles: topic,
-        prop: 'extracts|pageimages|info|revisions',
-        exintro: true,
+        prop: 'extracts|revisions',
+        exsentences: 3,
         explaintext: true,
         format: 'json',
         redirects: true,
-        rvprop: 'timestamp'
+        rvprop: 'timestamp',
+        rvlimit: 1
       },
       timeout: 5000
     });
     
-    const pages = response.data.query.pages;
+    const pages = response.data.query?.pages || {};
     const page = Object.values(pages)[0];
     
-    if (!page.missing) {
-      // Try to get extract, fallback to full article if intro not available
-      let extract = page.extract || `Article: ${page.title}`;
-      if (!extract || extract.length < 50) {
-        // Try full content query
-        const fullResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
-          params: {
-            action: 'query',
-            titles: topic,
-            prop: 'extracts',
-            explaintext: true,
-            format: 'json',
-            redirects: true
-          },
-          timeout: 5000
-        });
-        const fullPage = Object.values(fullResponse.data.query.pages)[0];
-        extract = fullPage.extract || extract;
-      }
-      
-      let text = `According to Wikipedia: ${extract.substring(0, 500)}...`;
-      if (includeStats && page.revisions) {
-        const lastUpdate = page.revisions?.[0]?.timestamp || 'unknown';
-        text += `\n[Wikipedia Stats: ${page.title}, Last updated: ${lastUpdate}]`;
+    if (page && !page.missing && page.extract) {
+      let text = `According to Wikipedia: ${page.extract}`;
+      if (includeStats && page.revisions?.length > 0) {
+        text += `\n[Wikipedia Stats: Title="${page.title}", Last updated="${page.revisions[0].timestamp}"]`;
       }
       return text;
     }
     return null;
   } catch (err) {
-    console.error('Wikipedia error:', err.message);
+    console.error('Wikipedia fetch error:', err.message);
     return null;
   }
 };
@@ -101,10 +78,9 @@ const fetchPubMedData = async (topic, includeStats = false) => {
       timeout: 5000
     });
     
-    const ids = response.data.esearchresult.idlist || [];
+    const ids = response.data.esearchresult?.idlist || [];
     if (ids.length === 0) return null;
     
-    // Fetch summary
     const summaryResponse = await axios.get('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi', {
       params: {
         db: 'pubmed',
@@ -118,82 +94,79 @@ const fetchPubMedData = async (topic, includeStats = false) => {
     let text = 'According to PubMed research:\n';
     
     ids.forEach(id => {
-      const article = results[id];
+      const article = results?.[id];
       if (article) {
         text += `• ${article.title} (${article.pubdate || 'Date unknown'})`;
         if (includeStats) {
-          text += ` [Citations tracked, PMID: ${id}]`;
+          text += ` [PMID: ${id}]`;
         }
         text += '\n';
       }
     });
     
-    return text.trim();
+    return text.trim() || null;
   } catch (err) {
-    console.error('PubMed error:', err.message);
+    console.error('PubMed fetch error:', err.message);
     return null;
   }
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
+  if (!genAI) {
+    return `According to alternative sources: Gemini API key not configured. Unable to fetch contrarian perspectives on ${topic}.`;
+  }
+  
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    const prompt = `You are a fact-checker analyzing alternative perspectives on: "${topic}"
-    
-Generate a brief alternative or contrarian narrative from credible sources. Include:
-- Key alternative claims
-- Sources and citations  
-- Timeline of claims
-- Credibility assessment
-
-Keep factual and evidence-based. ${includeStats ? 'Include confidence levels for each claim.' : 'Be concise.'}
-
-Start with: "According to alternative sources:"`;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Provide a brief alternative or contrarian perspective on: "${topic}"
+Include: key alternative claims, credible sources, timeline. Keep factual.
+${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "According to alternative sources:"`;
     
     const result = await model.generateContent(prompt);
     return `According to alternative sources: ${result.response.text()}`;
   } catch (err) {
-    console.error('Grok/X error:', err.message);
-    return `According to alternative sources: Research indicates various perspectives on ${topic}. Further analysis required to determine reliability and factual basis.`;
+    console.error('Grok/Gemini error:', err.message);
+    return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
+  if (!genAI) {
+    return {
+      score: 50,
+      discrepancies: [
+        { type: 'INCOMPLETE_ANALYSIS', text: 'Gemini API key not configured', severity: 'low' }
+      ]
+    };
+  }
+  
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    const prompt = `Perform deep semantic analysis of these texts:
-    
-SUSPECT: "${suspectText}"
-CONSENSUS: "${consensusText}"
-
-${includeStats ? `Include statistical analysis:
-- Semantic similarity score (0-100)
-- Entity overlap analysis
-- Temporal consistency
-- Source credibility markers` : 'Rate alignment 0-100'}
-
-Format as JSON with fields: score, discrepancies (array of {type, text, severity}), ${includeStats ? 'semanticAnalysis: {...}' : ''}`;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Analyze discrepancies between these texts. Rate alignment 0-100.
+SUSPECT: "${suspectText.substring(0, 300)}"
+CONSENSUS: "${consensusText.substring(0, 300)}"
+${includeStats ? 'Include semantic similarity score and entity overlap.' : ''}
+Format as JSON: {score: number, discrepancies: [{type: string, text: string, severity: string}]}`;
     
     const result = await model.generateContent(prompt);
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonMatch = result.response.text().match(/\{[\s\S]*\}/);
     
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
     
     return {
-      score: 65,
+      score: 50,
       discrepancies: [
-        { type: 'INFORMATION_MISMATCH', text: 'Texts present different information sources', severity: 'medium' }
+        { type: 'ANALYSIS_INCOMPLETE', text: 'Could not parse Gemini response', severity: 'medium' }
       ]
     };
   } catch (err) {
     console.error('Semantic analysis error:', err.message);
     return {
-      score: 65,
+      score: 50,
       discrepancies: [
-        { type: 'INFORMATION_MISMATCH', text: 'Analysis unable to complete', severity: 'low' }
+        { type: 'ANALYSIS_ERROR', text: 'Semantic analysis failed', severity: 'low' }
       ]
     };
   }
@@ -239,14 +212,14 @@ const handleApi = async (req, res) => {
       return res.json({ success: true, id: docRef.id, bounty: newBounty });
     }
     
-    // FETCH GROK SOURCE - Real X/Grok sources
+    // FETCH GROK SOURCE
     if (path.includes('fetchGrokSource')) {
       const { topic, includeStats } = req.body.data || {};
       const text = await fetchXGrokData(topic, includeStats);
       return res.json({ data: { text } });
     }
     
-    // FETCH CONSENSUS - Real Wikipedia + PubMed
+    // FETCH CONSENSUS - Wikipedia + PubMed (Real data, no Gemini required)
     if (path.includes('fetchConsensus')) {
       const { topic, mode, includeStats } = req.body.data || {};
       
@@ -254,26 +227,27 @@ const handleApi = async (req, res) => {
       
       // Wikipedia always included
       const wikiData = await fetchWikipediaData(topic, includeStats);
-      if (wikiData) consensusText += wikiData + '\n\n';
+      if (wikiData) {
+        consensusText += wikiData + '\n\n';
+      }
       
       // PubMed for medical topics
-      if (mode === 'medical') {
+      if (mode === 'medical' || mode === 'science') {
         const pubmedData = await fetchPubMedData(topic, includeStats);
-        if (pubmedData) consensusText += pubmedData;
+        if (pubmedData) {
+          consensusText += pubmedData + '\n\n';
+        }
       }
       
       // Fallback if no data found
       if (!consensusText.trim()) {
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        const prompt = `Summarize scientific consensus on "${topic}" from Wikipedia and peer-reviewed sources. ${includeStats ? 'Include research statistics.' : 'Keep concise.'}`;
-        const result = await model.generateContent(prompt);
-        consensusText = `According to consensus sources: ${result.response.text()}`;
+        consensusText = `According to consensus sources: Limited data available for "${topic}". Further research needed from authoritative sources.`;
       }
       
-      return res.json({ data: { consensusText } });
+      return res.json({ data: { consensusText: consensusText.trim() } });
     }
     
-    // ANALYZE DISCREPANCY - Semantic analysis
+    // ANALYZE DISCREPANCY
     if (path.includes('analyzeDiscrepancy')) {
       const { suspectText, consensusText, includeStats } = req.body.data || {};
       const analysis = await analyzeWithSemantics(suspectText, consensusText, includeStats);
@@ -285,9 +259,8 @@ const handleApi = async (req, res) => {
       const { topic, bountyId, analysis, claim, suspectText, consensusText } = req.body.data || {};
       const dkgAssetId = `did:dkg:otp:2043/0x${Math.random().toString(16).substring(2, 18).toUpperCase()}`;
       
-      // Save to Firestore (POISON PILL - PERMANENT BLOCK)
       const noteDoc = {
-        topic: topic.toLowerCase(), // Lowercase for matching
+        topic: topic.toLowerCase(),
         claim,
         analysis,
         suspectText,
@@ -299,11 +272,8 @@ const handleApi = async (req, res) => {
         updatedAt: new Date()
       };
       await db.collection('communityNotes').add(noteDoc);
-      
-      // Update cache immediately
       poisonPillCache.set(topic.toLowerCase(), noteDoc);
       
-      // Update bounty
       if (bountyId) {
         await db.collection('bounties').doc(bountyId).update({
           status: 'VERIFIED & COMPLETED',
@@ -315,45 +285,24 @@ const handleApi = async (req, res) => {
       return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED', blocked: true } });
     }
     
-    // AGENT GUARD - POISON PILL FIREWALL (FOREVER BLOCK)
+    // AGENT GUARD - POISON PILL FIREWALL
     if (path.includes('agentGuard')) {
       const { question } = req.body.data || {};
       
-      // Check poison pill cache + Firestore
       const blockedTopics = await getBlockedTopics();
       let blocked = false;
       let blockingReason = null;
       
-      // Check exact matches and partial matches
       for (const [blockedTopic, noteData] of blockedTopics.entries()) {
-        if (question.toLowerCase().includes(blockedTopic) || 
-            blockedTopic.includes(question.toLowerCase().split(' ')[0])) {
+        if (question.toLowerCase().includes(blockedTopic)) {
           blocked = true;
           blockingReason = noteData.dkgAssetId;
           break;
         }
       }
       
-      // Also check fresh from Firestore for latest blocks
-      if (!blocked) {
-        const freshCheck = await db.collection('communityNotes')
-          .where('status', '==', 'PUBLISHED')
-          .where('blocked', '==', true)
-          .get();
-        
-        for (const doc of freshCheck.docs) {
-          const note = doc.data();
-          if (question.toLowerCase().includes(note.topic)) {
-            blocked = true;
-            blockingReason = note.dkgAssetId;
-            poisonPillCache.set(note.topic, note);
-            break;
-          }
-        }
-      }
-      
       const message = blocked 
-        ? `🚫 PERMANENTLY BLOCKED: This topic has been flagged as misinformation by verified Community Notes (${blockingReason}). This block is permanent and enforced across all AI agents via DKG.`
+        ? `🚫 PERMANENTLY BLOCKED: This topic has been flagged as misinformation (${blockingReason}). This block is permanent across all AI agents via DKG.`
         : '✓ Topic is not blocked. You may proceed.';
       
       return res.json({ data: { blocked, message, reason: blockingReason } });
