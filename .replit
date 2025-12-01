@@ -38,13 +38,13 @@ waitForPort = 5000
 name = "backend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server.js"
-waitForPort = 8000
-
-[workflows.workflow.metadata]
-outputType = "console"
+waitForPort = 3000
 
 [[ports]]
 localPort = 3000
