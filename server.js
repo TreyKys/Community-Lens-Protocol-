@@ -63,7 +63,14 @@ Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
     };
 
     console.log(`🔵 Grok request for: ${topic}`);
+    console.log(`   Payload keys:`, Object.keys(payload));
+    console.log(`   API URL:`, GEMINI_URL.substring(0, 80) + '...');
+    
     const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, payload, { timeout: 20000 });
+    
+    console.log(`   Response status:`, response.status);
+    console.log(`   Response data keys:`, Object.keys(response.data));
+    console.log(`   Candidates:`, response.data.candidates?.length || 0);
 
     const grokText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
