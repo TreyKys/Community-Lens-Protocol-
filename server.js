@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Gemini with API key from environment
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCzJFniIAi_bNdItpcEBrfun41xejz7c70';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyC1Kaweh-kiWJWO-lXKfYdYwSl6BvUEOZ0';
 let genAI = null;
 
 try {
@@ -31,7 +31,7 @@ app.post('/api/grok', async (req, res) => {
       return res.json({ text: `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification. [API key needed for full AI analysis]` });
     }
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     const prompt = `Provide a brief alternative or contrarian perspective on: "${topic}"
 Include: key alternative claims, credible sources, timeline. Keep factual.
 ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "According to alternative sources:"`;
@@ -57,7 +57,7 @@ app.post('/api/analyze', async (req, res) => {
       });
     }
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     const prompt = `Analyze discrepancies between these texts. Rate alignment 0-100.
 SUSPECT: "${suspectText.substring(0, 300)}"
 CONSENSUS: "${consensusText.substring(0, 300)}"
