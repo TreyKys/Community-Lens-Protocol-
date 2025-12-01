@@ -7,11 +7,24 @@ import axios from 'axios';
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Initialize Gemini only if API key exists
+// Lazy initialize Gemini - only call from within handlers
 let genAI = null;
-if (process.env.GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-}
+const getGeminiClient = () => {
+  if (genAI) return genAI;
+  
+  try {
+    // Firebase runtime config available inside request handlers
+    const apiKey = functions.config()?.gemini?.api_key;
+    if (apiKey) {
+      genAI = new GoogleGenerativeAI(apiKey);
+      console.log('Gemini initialized successfully');
+      return genAI;
+    }
+  } catch (err) {
+    console.error('Failed to initialize Gemini:', err.message);
+  }
+  return null;
+};
 
 // POISON PILL CACHE - Permanent blocks
 const poisonPillCache = new Map();
@@ -112,12 +125,13 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
-  if (!genAI) {
+  const client = getGeminiClient();
+  if (!client) {
     return `According to alternative sources: Gemini API key not configured. Unable to fetch contrarian perspectives on ${topic}.`;
   }
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `Provide a brief alternative or contrarian perspective on: "${topic}"
 Include: key alternative claims, credible sources, timeline. Keep factual.
 ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "According to alternative sources:"`;
@@ -131,7 +145,8 @@ ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "Acco
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
-  if (!genAI) {
+  const client = getGeminiClient();
+  if (!client) {
     return {
       score: 50,
       discrepancies: [
@@ -141,7 +156,7 @@ const analyzeWithSemantics = async (suspectText, consensusText, includeStats = f
   }
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `Analyze discrepancies between these texts. Rate alignment 0-100.
 SUSPECT: "${suspectText.substring(0, 300)}"
 CONSENSUS: "${consensusText.substring(0, 300)}"
