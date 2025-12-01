@@ -13,13 +13,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Cloud Functions for core features (bounties, DKG, consensus)
+// Cloud Functions for ALL features (everything on Firebase)
 const CLOUD_FUNCTIONS_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
-
-// Replit backend for Gemini features (accessible via localhost in dev, public URL in production)
-const REPLIT_BACKEND_URL = import.meta.env.DEV 
-  ? 'http://localhost:8080'
-  : 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev:8080';
 
 const callFunction = async (endpoint, data) => {
   const url = `${CLOUD_FUNCTIONS_URL}${endpoint}`;
@@ -38,27 +33,10 @@ const callFunction = async (endpoint, data) => {
   }
 };
 
-const callReplitBackend = async (endpoint, data) => {
-  const url = `${REPLIT_BACKEND_URL}${endpoint}`;
-  
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error(`Replit backend error at ${endpoint}:`, error);
-    throw error;
-  }
-};
-
 export const createBounty = (data) => callFunction('/createBounty', data);
-export const fetchGrokSource = (data) => callReplitBackend('/api/grok', data);
+export const fetchGrokSource = (data) => callFunction('/grok', data);
 export const fetchConsensus = (data) => callFunction('/fetchConsensus', data);
-export const analyzeDiscrepancy = (data) => callReplitBackend('/api/analyze', data);
+export const analyzeDiscrepancy = (data) => callFunction('/analyze', data);
 export const verifyAndMint = (data) => callFunction('/verifyAndMint', data);
 export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', data);
 export const agentGuard = (data) => callFunction('/agentGuard', data);

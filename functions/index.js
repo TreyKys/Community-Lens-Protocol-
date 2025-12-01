@@ -255,6 +255,65 @@ const handleApi = async (req, res) => {
       return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED' } });
     }
     
+    // GROK SYNTHESIS - Anti-establishment narratives
+    if (path.includes('grok')) {
+      const { topic } = req.body.data || req.body || {};
+      if (!topic) {
+        return res.status(400).json({ error: 'Missing topic' });
+      }
+      const grokText = await synthesizeGrokNarrative(topic);
+      return res.json({ data: { text: grokText, source: 'Grokipedia', fetched: !!grokText } });
+    }
+
+    // ANALYZE - Division Math scoring
+    if (path.includes('analyze')) {
+      const { suspectText, consensusText } = req.body.data || req.body || {};
+      if (!suspectText || !consensusText) {
+        return res.status(400).json({ error: 'Missing suspectText or consensusText' });
+      }
+
+      if (!GEMINI_API_KEY) {
+        return res.json({ data: { score: 50, verdict: 'PENDING', contradictions: [{ text: 'API unavailable', factor: 1 }] } });
+      }
+
+      try {
+        const prompt = `Compare ONLY these two sources using Division Math:
+
+SUSPECT SOURCE: ${suspectText.substring(0, 600)}
+
+CONSENSUS SOURCE: ${consensusText.substring(0, 600)}
+
+SCORING: Start at 100. Divide by severity:
+- Minor ÷1.2, Factual ÷2, Opposite ÷5, Fabrication ÷10
+
+Return ONLY this JSON (no explanation):
+{
+  "score": <final number>,
+  "verdict": "ALIGNED|PARTIALLY_CONTRADICTORY|CONTRADICTORY",
+  "contradictions": [{"text": "description", "factor": <number>}]
+}`;
+
+        const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          contents: [{
+            parts: [{ text: prompt }]
+          }]
+        }, { timeout: 8000 });
+
+        const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+          const analysis = JSON.parse(jsonMatch[0]);
+          return res.json({ data: { score: Math.round(analysis.score) || 50, verdict: analysis.verdict || 'NEUTRAL', contradictions: analysis.contradictions || [{ text: 'General divergence', factor: 1 }] } });
+        }
+
+        return res.json({ data: { score: 45, verdict: 'CONTRADICTORY', contradictions: [{ text: 'Factual divergence detected', factor: 2 }] } });
+      } catch (err) {
+        console.error('Analysis error:', err.message);
+        return res.json({ data: { score: 40, verdict: 'ERROR', contradictions: [{ text: 'Analysis service error', factor: 1 }] } });
+      }
+    }
+    
     // AGENT GUARD - Semantic firewall + real AI responses for all topics
     if (path.includes('agentGuard')) {
       const { question } = req.body.data || {};
