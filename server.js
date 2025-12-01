@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Gemini with API key from environment
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AlzaSyDEeFlgqsJbbU9rJ-D0cxi0Xzu0C6sjqRQ';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCzJFniIAi_bNdItpcEBrfun41xejz7c70';
 let genAI = null;
 
 try {
@@ -28,7 +28,7 @@ app.post('/api/grok', async (req, res) => {
     const { topic, includeStats } = req.body;
     
     if (!genAI) {
-      return res.json({ text: `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.` });
+      return res.json({ text: `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification. [API key needed for full AI analysis]` });
     }
     
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -41,7 +41,7 @@ ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "Acco
     return res.json({ text: `According to alternative sources: ${text}` });
   } catch (err) {
     console.error('Grok error:', err.message);
-    res.json({ text: `According to alternative sources: Alternative perspectives on ${req.body.topic} require additional research and source verification.` });
+    res.json({ text: `According to alternative sources: Alternative perspectives on ${req.body.topic} require additional research and source verification. [Gemini API key validation required]` });
   }
 });
 
@@ -53,7 +53,7 @@ app.post('/api/analyze', async (req, res) => {
     if (!genAI) {
       return res.json({
         score: 50,
-        discrepancies: [{ type: 'ANALYSIS_NEUTRAL', text: 'Semantic analysis unavailable', severity: 'low' }]
+        discrepancies: [{ type: 'ANALYSIS_PENDING', text: 'Semantic analysis awaiting valid Gemini API key', severity: 'low' }]
       });
     }
     
@@ -74,13 +74,13 @@ Format as JSON: {score: number, discrepancies: [{type: string, text: string, sev
     
     res.json({
       score: 50,
-      discrepancies: [{ type: 'ANALYSIS_INCOMPLETE', text: 'Could not parse response', severity: 'medium' }]
+      discrepancies: [{ type: 'ANALYSIS_INCOMPLETE', text: 'Could not parse Gemini response', severity: 'medium' }]
     });
   } catch (err) {
     console.error('Analyze error:', err.message);
     res.json({
       score: 50,
-      discrepancies: [{ type: 'ANALYSIS_ERROR', text: 'Analysis failed', severity: 'low' }]
+      discrepancies: [{ type: 'ANALYSIS_ERROR', text: 'Gemini API key validation required for semantic analysis', severity: 'low' }]
     });
   }
 });
