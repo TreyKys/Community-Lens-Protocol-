@@ -1,28 +1,50 @@
 import functions from 'firebase-functions';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Initialize Gemini client - use Firebase runtime config
+// Initialize Gemini - fetch API key from Google Secret Manager
 let genAI = null;
-const getGeminiClient = () => {
-  if (genAI) return genAI;
+let secretPromise = null;
+
+const getGeminiApiKey = async () => {
+  if (secretPromise) return secretPromise;
   
-  try {
-    const config = functions.config();
-    const apiKey = config.gemini?.api_key || process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      console.warn('⚠️ GEMINI_API_KEY not found in runtime config or env');
+  secretPromise = (async () => {
+    try {
+      const client = new SecretManagerServiceClient();
+      const projectId = 'community-lens-dd945';
+      const secretName = client.secretVersionPath(projectId, 'GEMINI_API_KEY', 'latest');
+      const [version] = await client.accessSecretVersion({ name: secretName });
+      const apiKey = version.payload.data.toString('utf8');
+      console.log('✅ Fetched GEMINI_API_KEY from Google Secrets');
+      return apiKey;
+    } catch (err) {
+      console.error('❌ Secret Manager error:', err.message);
       return null;
     }
-    
+  })();
+  
+  return secretPromise;
+};
+
+const getGeminiClient = async () => {
+  if (genAI) return genAI;
+  
+  const apiKey = await getGeminiApiKey();
+  if (!apiKey) {
+    console.warn('⚠️ Failed to retrieve GEMINI_API_KEY');
+    return null;
+  }
+  
+  try {
     genAI = new GoogleGenerativeAI(apiKey);
-    console.log('✅ Gemini initialized from Firebase config');
+    console.log('✅ Gemini initialized successfully');
     return genAI;
   } catch (err) {
     console.error('❌ Gemini init error:', err.message);
@@ -129,7 +151,7 @@ const fetchPubMedData = async (topic, includeStats = false) => {
 };
 
 const fetchXGrokData = async (topic, includeStats = false) => {
-  const client = getGeminiClient();
+  const client = await getGeminiClient();
   if (!client) {
     return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
   }
@@ -149,7 +171,7 @@ ${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "Acco
 };
 
 const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
-  const client = getGeminiClient();
+  const client = await getGeminiClient();
   if (!client) {
     return {
       score: 50,
