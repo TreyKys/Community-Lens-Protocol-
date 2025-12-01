@@ -13,11 +13,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ALWAYS use Cloud Functions in production
-const API_BASE_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
+// Cloud Functions for core features (bounties, DKG, consensus)
+const CLOUD_FUNCTIONS_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
+
+// Replit backend for Gemini features (stays permanently online)
+const REPLIT_BACKEND_URL = 'https://2192a4ea-d452-48bf-b57d-69c6eafeba86-00-1cm2falbtp98y.kirk.replit.dev';
 
 const callFunction = async (endpoint, data) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${CLOUD_FUNCTIONS_URL}${endpoint}`;
   
   try {
     const response = await fetch(url, {
@@ -33,10 +36,27 @@ const callFunction = async (endpoint, data) => {
   }
 };
 
+const callReplitBackend = async (endpoint, data) => {
+  const url = `${REPLIT_BACKEND_URL}${endpoint}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error(`Replit backend error at ${endpoint}:`, error);
+    throw error;
+  }
+};
+
 export const createBounty = (data) => callFunction('/createBounty', data);
-export const fetchGrokSource = (data) => callFunction('/fetchGrokSource', data);
+export const fetchGrokSource = (data) => callReplitBackend('/api/grok', data);
 export const fetchConsensus = (data) => callFunction('/fetchConsensus', data);
-export const analyzeDiscrepancy = (data) => callFunction('/analyzeDiscrepancy', data);
+export const analyzeDiscrepancy = (data) => callReplitBackend('/api/analyze', data);
 export const verifyAndMint = (data) => callFunction('/verifyAndMint', data);
 export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', data);
 export const agentGuard = (data) => callFunction('/agentGuard', data);
