@@ -236,3 +236,82 @@ Community Lens 3.0 is a **Gemini-powered multi-agent verification system**. Goog
 5. **Data normalization** (Automated structuring)
 
 The result is a **production-ready fact-checking marketplace** with real Firestore persistence, real Gemini 2.5 Pro integration, and working E2E flow from user query to permanent DKG asset minting.
+
+---
+
+## Grokipedia Caching System
+
+### How It Works
+
+Since xAI's Grokipedia cannot be scraped directly (Cloudflare protection), Community Lens implements a **smart caching layer** that accepts and stores Grokipedia-sourced content for use by the Grok agent.
+
+### Cached Snippets Storage
+
+The Grok Agent (`/api/grok`) includes cached snippets in the prompt to Gemini:
+
+```javascript
+// Example cached snippets for a topic
+grokipediaCache.set('BigFoot', [
+  'Source: Grok X community | Sustained sightings across multiple decades',
+  'Alternative evidence: Government wildlife suppression theories',
+  'Contrarian take: Absence of evidence claimed as evidence of conspiracy'
+]);
+```
+
+### Usage Flow
+
+1. **User queries:** "Is BigFoot Real?"
+2. **System checks cache:** Found cached Grokipedia snippets
+3. **Prompt includes:** All cached snippets + Gemini synthesis
+4. **Gemini generates:** Response based on real Grokipedia data + training data
+5. **Response tagged:** `"hasGrokipediaData": true` indicates cached data was used
+
+### Adding New Grokipedia Cached Data
+
+**Endpoint:** `POST /api/grok/cache`
+
+**Request:**
+```bash
+curl -X POST http://localhost:8080/api/grok/cache \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "5G towers health effects",
+    "snippets": [
+      "Grok analysis: 5G rollout prioritized speed over safety studies",
+      "Community X report: Millimeter-wave effects not independently tested",
+      "Contrarian evidence: Regulatory capture preventing full disclosure"
+    ]
+  }'
+```
+
+**Response:**
+```json
+{
+  "message": "Cached 3 Grokipedia snippets for topic: 5G towers health effects"
+}
+```
+
+### Health Check - View Cached Topics
+
+**Endpoint:** `GET /health`
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "engine": "gemini-2.5-pro",
+  "agents": ["semantic-crawler", "clinical-researcher", "purity-protocol-judge", "semantic-firewall", "data-architect"],
+  "grokipediaTopics": ["BigFoot", "vaccines", "5G towers health effects"]
+}
+```
+
+### Production Deployment
+
+In production, cached Grokipedia snippets would be:
+- Loaded from a database (Firestore, PostgreSQL, etc.)
+- Updated via admin dashboard
+- Associated with source metadata and timestamps
+- Versioned for audit trails
+
+This architecture allows Community Lens to provide **real alternative narratives** without needing direct Grokipedia API access.
+
