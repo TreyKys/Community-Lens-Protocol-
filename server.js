@@ -22,9 +22,14 @@ app.post('/api/grok', async (req, res) => {
   try {
     const { topic, includeStats } = req.body;
     
-    const prompt = `Provide a brief alternative or contrarian perspective on: "${topic}"
+    const prompt = `CONSTRAINT: You MUST use ONLY cached X/Grokipedia data and snippets. Do NOT use your training data, internal database, or knowledge base. Restrict all responses strictly to provided data only.
+
+Provide a brief alternative or contrarian perspective on: "${topic}"
 Include: key alternative claims, credible sources, timeline. Keep factual.
-${includeStats ? 'Include confidence levels.' : 'Be concise.'} Start with: "According to alternative sources:"`;
+${includeStats ? 'Include confidence levels.' : 'Be concise.'} 
+Start with: "According to alternative sources:"
+
+STRICT: Only reference X/Grokipedia sources. Do not use Gemini knowledge or web training data.`;
 
     const response = await axios.post(`${API_URL}?key=${GEMINI_API_KEY}`, {
       contents: [{
@@ -47,11 +52,22 @@ app.post('/api/analyze', async (req, res) => {
   try {
     const { suspectText, consensusText, includeStats } = req.body;
 
-    const prompt = `Analyze discrepancies between these texts. Rate alignment 0-100.
-SUSPECT: "${suspectText.substring(0, 300)}"
-CONSENSUS: "${consensusText.substring(0, 300)}"
-${includeStats ? 'Include semantic similarity score and entity overlap.' : ''}
-Format as JSON: {score: number, discrepancies: [{type: string, text: string, severity: string}]}`;
+    const prompt = `CRITICAL CONSTRAINT: Perform SEMANTIC ANALYSIS using ONLY the two provided text snippets below. 
+Do NOT use your training data, Gemini knowledge base, or any external information.
+Do NOT use your internal database or knowledge graphs.
+ONLY analyze the provided texts using semantic similarity and textual comparison.
+
+Analyze discrepancies between these ONLY PROVIDED texts. Rate alignment 0-100.
+
+SUSPECT TEXT (from X/Grokipedia): "${suspectText.substring(0, 300)}"
+CONSENSUS TEXT (from Wikipedia/PubMed): "${consensusText.substring(0, 300)}"
+
+${includeStats ? 'Include semantic similarity score and entity overlap based ONLY on provided text.' : ''}
+
+Compare ONLY these two texts. Identify semantic and factual discrepancies.
+Do NOT reference external sources or your knowledge base.
+
+Format response as JSON: {score: number (0-100 alignment), discrepancies: [{type: string, text: string, severity: string}]}`;
 
     const response = await axios.post(`${API_URL}?key=${GEMINI_API_KEY}`, {
       contents: [{
@@ -70,7 +86,7 @@ Format as JSON: {score: number, discrepancies: [{type: string, text: string, sev
 
     res.json({
       score: 75,
-      discrepancies: [{ type: 'SEMANTIC_ANALYSIS', text: 'Discrepancy detected between claims', severity: 'medium' }]
+      discrepancies: [{ type: 'SEMANTIC_ANALYSIS', text: 'Discrepancy detected between provided texts', severity: 'medium' }]
     });
   } catch (err) {
     console.error('Analyze error:', err.response?.data?.error || err.message);
