@@ -92,9 +92,9 @@ function BountyBoardView({ onViewBounty }) {
     };
 
     useEffect(() => {
-        // Load bounties on mount and poll for updates
+        // Load bounties on mount and poll for updates every 10 seconds
         loadBounties();
-        const interval = setInterval(loadBounties, 2000);
+        const interval = setInterval(loadBounties, 10000);
         
         return () => clearInterval(interval);
     }, []);
