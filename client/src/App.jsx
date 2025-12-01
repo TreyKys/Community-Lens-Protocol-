@@ -270,18 +270,25 @@ function VerifierView({ bounty }) {
     const autoFetch = async () => {
       setLoading('auto');
       try {
-        // Fetch Grokipedia
+        // Fetch Grokipedia (Replit backend returns { text, source, fetched })
         const grokResult = await fetchGrokSource({ topic: bounty.topic, includeStats: false });
-        if (grokResult.data.text) {
-          setSuspectText(grokResult.data.text);
+        const grokText = grokResult.text || (grokResult.data && grokResult.data.text) || '';
+        if (grokText) {
+          setSuspectText(grokText);
         }
 
-        // Fetch Consensus
+        // Fetch Consensus (Cloud Functions return { data: { consensusText: ... } })
         const consensusResult = await fetchConsensus({ topic: bounty.topic, mode: consensusMode, includeStats: false });
+        let consensusText = '';
         if (consensusResult.data && consensusResult.data.consensusText) {
-          setConsensusText(consensusResult.data.consensusText);
+          consensusText = consensusResult.data.consensusText;
         } else if (consensusResult.data && consensusResult.data.text) {
-          setConsensusText(consensusResult.data.text);
+          consensusText = consensusResult.data.text;
+        } else if (consensusResult.text) {
+          consensusText = consensusResult.text;
+        }
+        if (consensusText) {
+          setConsensusText(consensusText);
         }
 
         setToast({ type: 'success', message: '✓ Sources fetched. Running analysis...' });
@@ -333,14 +340,15 @@ function VerifierView({ bounty }) {
     setLoading('grok');
     try {
       const result = await fetchGrokSource({ topic: topicInput, includeStats });
-
-      if (result.data.text) {
-         setSuspectText(result.data.text);
-         setToast({ type: 'success', message: "✓ Grokipedia & alternative sources fetched with semantic analysis." });
+      const text = result.text || (result.data && result.data.text) || '';
+      
+      if (text) {
+         setSuspectText(text);
+         setToast({ type: 'success', message: "✓ Grokipedia & alternative sources fetched." });
       }
     } catch (err) {
        console.error(err);
-       setToast({ type: 'warning', message: "⚠️ Connection Failed. Using fallback." });
+       setToast({ type: 'warning', message: "⚠️ Connection Failed." });
     } finally {
       setLoading('');
     }
@@ -351,8 +359,16 @@ function VerifierView({ bounty }) {
     setLoading('consensus');
     try {
         const result = await fetchConsensus({ topic: topicInput, mode: consensusMode, includeStats });
-        setConsensusText(result.data.consensusText);
-        setToast({ type: 'success', message: `✓ Fetched from Wikipedia${consensusMode === 'medical' ? ' & PubMed' : ''} with semantic analysis.` });
+        let text = '';
+        if (result.data && result.data.consensusText) {
+          text = result.data.consensusText;
+        } else if (result.data && result.data.text) {
+          text = result.data.text;
+        } else if (result.text) {
+          text = result.text;
+        }
+        setConsensusText(text);
+        setToast({ type: 'success', message: `✓ Fetched from Wikipedia${consensusMode === 'medical' ? ' & PubMed' : ''}` });
     } catch (err) {
         console.error(err);
         setToast({ type: 'warning', message: '⚠️ Could not fetch consensus.' });
