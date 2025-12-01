@@ -255,7 +255,7 @@ const handleApi = async (req, res) => {
       return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED' } });
     }
     
-    // AGENT GUARD - Semantic firewall with poison pills
+    // AGENT GUARD - Semantic firewall + real AI responses for all topics
     if (path.includes('agentGuard')) {
       const { question } = req.body.data || {};
       if (!question) {
@@ -263,50 +263,94 @@ const handleApi = async (req, res) => {
       }
       
       const blockedTopics = await getBlockedTopics();
-      
-      // Check direct match
       let blocked = false;
       let blockingNote = null;
-      for (const [blockedTopic, noteData] of blockedTopics.entries()) {
-        if (question.toLowerCase().includes(blockedTopic)) {
-          blocked = true;
-          blockingNote = noteData;
-          break;
-        }
-      }
       
-      // Semantic check with Gemini
-      if (!blocked && GEMINI_API_KEY && blockedTopics.size > 0) {
+      // STEP 1: Check if question relates to ANY blocked topic (semantic)
+      if (blockedTopics.size > 0 && GEMINI_API_KEY) {
         try {
           const topicsList = Array.from(blockedTopics.keys()).join(', ');
-          const prompt = `User asked: "${question}".
+          const semanticCheckPrompt = `User asked: "${question}".
 Blocked Topics: ${topicsList}.
-Does the user's question refer to ANY topic in the blocked list? Use semantic reasoning (e.g. 'Tube train' = 'Hyperloop').
+Does the user's question refer to ANY topic in the blocked list? Use semantic reasoning.
 Answer with ONLY: YES or NO`;
 
-          const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          const semanticResponse = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             contents: [{
-              parts: [{
-                text: prompt
-              }]
+              parts: [{ text: semanticCheckPrompt }]
             }]
           }, { timeout: 5000 });
 
-          const answer = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const answer = semanticResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           if (answer.includes('YES')) {
             blocked = true;
-            blockingNote = { dkgAssetId: 'semantic-match' };
+            // Find which topic matched
+            for (const [blockedTopic, noteData] of blockedTopics.entries()) {
+              if (question.toLowerCase().includes(blockedTopic)) {
+                blockingNote = noteData;
+                break;
+              }
+            }
+            if (!blockingNote) blockingNote = { dkgAssetId: 'semantic-match', topic: 'misinformation' };
           }
         } catch (err) {
           console.error('Semantic check error:', err.message);
         }
       }
       
-      const message = blocked 
-        ? `🚫 BLOCKED: This topic has been flagged (${blockingNote?.dkgAssetId || 'unknown'}). Permanent block via DKG.`
-        : '✓ Not blocked. You may ask.';
+      // STEP 2: If blocked, return block message. Otherwise, generate real Gemini response.
+      if (blocked) {
+        return res.json({ 
+          data: { 
+            blocked: true, 
+            message: `⛔ PERMANENTLY BLOCKED\n\nThis topic has been flagged as misinformation and minted to the Decentralized Knowledge Graph.\n\nAsset ID: ${blockingNote?.dkgAssetId || 'unknown'}\n\nThis block applies globally across all AI agents.`,
+            reason: blockingNote?.topic || 'community verified misinformation'
+          } 
+        });
+      }
       
-      return res.json({ data: { blocked, message } });
+      // STEP 3: Not blocked - generate real AI response
+      if (!GEMINI_API_KEY) {
+        return res.json({
+          data: {
+            blocked: false,
+            message: "I cannot generate a response at this time (API key missing).",
+            reason: null
+          }
+        });
+      }
+      
+      try {
+        const aiResponsePrompt = `You are a helpful AI assistant that answers factual questions accurately. 
+User asked: "${question}"
+
+Provide a clear, factual, concise answer (2-3 sentences max). Be helpful and accurate.`;
+
+        const aiResponse = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          contents: [{
+            parts: [{ text: aiResponsePrompt }]
+          }]
+        }, { timeout: 8000 });
+
+        const response = aiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+        
+        return res.json({
+          data: {
+            blocked: false,
+            message: response,
+            reason: null
+          }
+        });
+      } catch (err) {
+        console.error('AI response error:', err.message);
+        return res.json({
+          data: {
+            blocked: false,
+            message: "I encountered an error generating a response. Please try again.",
+            reason: null
+          }
+        });
+      }
     }
     
     res.status(404).json({ error: 'Unknown endpoint' });
