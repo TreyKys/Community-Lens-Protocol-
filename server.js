@@ -265,6 +265,31 @@ Return ONLY this JSON (no explanation):
   }
 });
 
+// ═════════════════════════════════════════════════════════════════
+// GET BOUNTIES FROM FIRESTORE
+// ═════════════════════════════════════════════════════════════════
+app.get('/api/getBounties', async (req, res) => {
+  try {
+    const { initializeApp } = await import('firebase-admin/app');
+    const { getFirestore } = await import('firebase-admin/firestore');
+    
+    const firebaseApp = initializeApp();
+    const db = getFirestore(firebaseApp);
+    
+    const bountyDocs = await db.collection('bounties').orderBy('createdAt', 'desc').get();
+    const bounties = bountyDocs.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log(`✅ Fetched ${bounties.length} bounties from Firestore`);
+    res.json(bounties);
+  } catch (err) {
+    console.error('Bounties fetch error:', err.message);
+    res.json([]);
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
