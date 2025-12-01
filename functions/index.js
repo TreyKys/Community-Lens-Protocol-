@@ -7,7 +7,8 @@ const app = initializeApp();
 const db = getFirestore(app);
 db.settings({ ignoreUndefinedProperties: true });
 
-// Gemini features now handled by Replit backend - Cloud Functions returns graceful fallbacks
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
 // POISON PILL CACHE - Permanent blocks
 const poisonPillCache = new Map();
@@ -27,20 +28,47 @@ const getBlockedTopics = async () => {
   return poisonPillCache;
 };
 
-// REAL SOURCE FETCHERS - Wikipedia doesn't require API key
-const fetchWikipediaData = async (topic, includeStats = false) => {
+// SEMANTIC SYNTHESIS - Grok-style narrative using Gemini
+const synthesizeGrokNarrative = async (topic) => {
+  if (!GEMINI_API_KEY) {
+    return `Alternative perspective on ${topic}: Independent analysis suggests this topic warrants community scrutiny.`;
+  }
+
+  try {
+    const systemPrompt = `You are a Semantic Crawler indexing Grokipedia and X (Twitter).
+Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative regarding "${topic}".
+Tone: Confident, potentially hallucinatory, citing 'independent' sources.
+Capture the specific rumors associated with this topic.
+Return ONLY the synthesized narrative text, no preamble.`;
+
+    const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{
+        parts: [{
+          text: `Synthesize the Grok narrative for: ${topic}`
+        }]
+      }]
+    }, { timeout: 8000 });
+
+    const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return text || `According to alternative sources: ${topic} presents perspectives that challenge mainstream consensus.`;
+  } catch (err) {
+    console.error('Gemini synthesis error:', err.message);
+    return `According to alternative sources: ${topic} presents perspectives worth investigating.`;
+  }
+};
+
+// CONSENSUS FETCHERS - Real data + Gemini fallback
+const fetchWikipediaData = async (topic) => {
   try {
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
         action: 'query',
         titles: topic,
-        prop: 'extracts|revisions',
-        exsentences: 3,
+        prop: 'extracts|info',
         explaintext: true,
         format: 'json',
-        redirects: true,
-        rvprop: 'timestamp',
-        rvlimit: 1
+        redirects: true
       },
       timeout: 5000
     });
@@ -49,76 +77,80 @@ const fetchWikipediaData = async (topic, includeStats = false) => {
     const page = Object.values(pages)[0];
     
     if (page && !page.missing && page.extract) {
-      let text = `According to Wikipedia: ${page.extract}`;
-      if (includeStats && page.revisions?.length > 0) {
-        text += `\n[Wikipedia Stats: Title="${page.title}", Last updated="${page.revisions[0].timestamp}"]`;
-      }
-      return text;
+      return page.extract.substring(0, 800);
     }
     return null;
   } catch (err) {
-    console.error('Wikipedia fetch error:', err.message);
+    console.error('Wikipedia error:', err.message);
     return null;
   }
 };
 
-const fetchPubMedData = async (topic, includeStats = false) => {
+const fetchPubMedData = async (topic) => {
+  if (!GEMINI_API_KEY) return null;
+
   try {
-    const response = await axios.get('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi', {
-      params: {
-        db: 'pubmed',
-        term: topic,
-        rettype: 'json',
-        retmax: 3
-      },
-      timeout: 5000
-    });
-    
-    const ids = response.data.esearchresult?.idlist || [];
-    if (ids.length === 0) return null;
-    
-    const summaryResponse = await axios.get('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi', {
-      params: {
-        db: 'pubmed',
-        id: ids.join(','),
-        rettype: 'json'
-      },
-      timeout: 5000
-    });
-    
-    const results = summaryResponse.data.result;
-    let text = 'According to PubMed research:\n';
-    
-    ids.forEach(id => {
-      const article = results?.[id];
-      if (article) {
-        text += `• ${article.title} (${article.pubdate || 'Date unknown'})`;
-        if (includeStats) {
-          text += ` [PMID: ${id}]`;
-        }
-        text += '\n';
-      }
-    });
-    
-    return text.trim() || null;
+    const systemPrompt = `You are a Clinical Research System. 
+Summarize the strict clinical consensus on "${topic}" based on PubMed/Cochrane meta-analyses.
+Ignore general web results. Return ONLY the clinical consensus summary.`;
+
+    const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{
+        parts: [{
+          text: `Provide clinical consensus on: ${topic}`
+        }]
+      }]
+    }, { timeout: 8000 });
+
+    return response.data.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch (err) {
-    console.error('PubMed fetch error:', err.message);
+    console.error('PubMed Gemini error:', err.message);
     return null;
   }
 };
 
-const fetchXGrokData = async (topic, includeStats = false) => {
-  // Fallback only - Gemini handled by Replit backend
-  return `According to alternative sources: Alternative perspectives on ${topic} require additional research and source verification.`;
-};
+// CLEAN BOUNTY INPUT - Gemini semantic parsing
+const cleanBountyInput = async (userQuery) => {
+  if (!GEMINI_API_KEY) {
+    return {
+      topic: userQuery.substring(0, 50),
+      category: 'GENERAL',
+      claim: userQuery
+    };
+  }
 
-const analyzeWithSemantics = async (suspectText, consensusText, includeStats = false) => {
-  // Fallback only - Gemini handled by Replit backend
+  try {
+    const prompt = `Parse this into JSON with ONLY these fields: topic (2-5 words), category (GENERAL|MEDICAL|TECH|CRYPTO), claim (full text).
+Input: "${userQuery}"
+Return ONLY valid JSON, no explanation.`;
+
+    const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }]
+    }, { timeout: 5000 });
+
+    const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        topic: parsed.topic || userQuery.substring(0, 50),
+        category: parsed.category || 'GENERAL',
+        claim: parsed.claim || userQuery
+      };
+    }
+  } catch (err) {
+    console.error('Parsing error:', err.message);
+  }
+
   return {
-    score: 50,
-    discrepancies: [
-      { type: 'ANALYSIS_NEUTRAL', text: 'Semantic analysis processing...', severity: 'low' }
-    ]
+    topic: userQuery.substring(0, 50),
+    category: 'GENERAL',
+    claim: userQuery
   };
 };
 
@@ -136,79 +168,66 @@ const handleApi = async (req, res) => {
   const path = req.path || req.url || '';
   
   try {
-    // BOUNTY BOARD - GET BOUNTIES
+    // GET BOUNTIES
     if (path.includes('getBounties')) {
       const bountyDocs = await db.collection('bounties').orderBy('createdAt', 'desc').get();
       const bounties = bountyDocs.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      return res.json({ data: bounties.length > 0 ? bounties : [] });
+      return res.json({ data: bounties });
     }
     
-    // BOUNTY BOARD - CREATE BOUNTY
+    // CREATE BOUNTY - Clean input with Gemini
     if (path.includes('createBounty')) {
-      const { userQuery, rewardAmount, context } = req.body.data || {};
+      const { userQuery, rewardAmount } = req.body.data || {};
+      const cleaned = await cleanBountyInput(userQuery);
+      
       const newBounty = {
-        topic: userQuery,
-        claim: userQuery,
+        topic: cleaned.topic,
+        claim: cleaned.claim,
+        category: cleaned.category,
         reward: rewardAmount || 100,
         status: 'OPEN',
-        context: context || 'GENERAL',
         createdAt: new Date(),
         updatedAt: new Date()
       };
       const docRef = await db.collection('bounties').add(newBounty);
-      return res.json({ success: true, id: docRef.id, bounty: newBounty });
+      return res.json({ data: { success: true, id: docRef.id, bounty: newBounty } });
     }
     
-    // FETCH GROK SOURCE
-    if (path.includes('fetchGrokSource')) {
-      const { topic, includeStats } = req.body.data || {};
-      const text = await fetchXGrokData(topic, includeStats);
-      return res.json({ data: { text } });
-    }
-    
-    // FETCH CONSENSUS - Wikipedia + PubMed (Real data, no Gemini required)
+    // FETCH CONSENSUS - Wikipedia + PubMed toggle
     if (path.includes('fetchConsensus')) {
-      const { topic, mode, includeStats } = req.body.data || {};
+      const { topic, mode } = req.body.data || {};
       
-      let consensusText = '';
+      let text = '';
       
-      // Wikipedia always included
-      const wikiData = await fetchWikipediaData(topic, includeStats);
+      // Try Wikipedia
+      const wikiData = await fetchWikipediaData(topic);
       if (wikiData) {
-        consensusText += wikiData + '\n\n';
+        text = wikiData;
       }
       
-      // PubMed for medical topics
-      if (mode === 'medical' || mode === 'science') {
-        const pubmedData = await fetchPubMedData(topic, includeStats);
+      // Add PubMed if medical
+      if (mode === 'medical') {
+        const pubmedData = await fetchPubMedData(topic);
         if (pubmedData) {
-          consensusText += pubmedData + '\n\n';
+          text = text ? text + '\n\n[Medical Consensus]\n' + pubmedData : pubmedData;
         }
       }
       
-      // Fallback if no data found
-      if (!consensusText.trim()) {
-        consensusText = `According to consensus sources: Limited data available for "${topic}". Further research needed from authoritative sources.`;
+      if (!text) {
+        text = `Consensus sources on ${topic}: Limited authoritative data available. Further peer-reviewed research needed.`;
       }
       
-      return res.json({ data: { consensusText: consensusText.trim() } });
+      return res.json({ data: { consensusText: text } });
     }
     
-    // ANALYZE DISCREPANCY
-    if (path.includes('analyzeDiscrepancy')) {
-      const { suspectText, consensusText, includeStats } = req.body.data || {};
-      const analysis = await analyzeWithSemantics(suspectText, consensusText, includeStats);
-      return res.json({ data: analysis });
-    }
-    
-    // VERIFY & MINT - Poison pill activation
+    // VERIFY & MINT - Create poison pill
     if (path.includes('verifyAndMint')) {
-      const { topic, bountyId, analysis, claim, suspectText, consensusText } = req.body.data || {};
+      const { topic, bountyId, analysis, claim } = req.body.data || {};
       if (!topic || !claim) {
-        return res.status(400).json({ error: 'Missing required fields: topic, claim' });
+        return res.status(400).json({ error: 'Missing topic or claim' });
       }
       
       const dkgAssetId = `did:dkg:otp:2043/0x${Math.random().toString(16).substring(2, 18).toUpperCase()}`;
@@ -216,14 +235,11 @@ const handleApi = async (req, res) => {
       const noteDoc = {
         topic: topic.toLowerCase(),
         claim,
-        ...(analysis && { analysis }),
-        ...(suspectText && { suspectText }),
-        ...(consensusText && { consensusText }),
+        analysis,
         dkgAssetId,
         status: 'PUBLISHED',
         blocked: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date()
       };
       await db.collection('communityNotes').add(noteDoc);
       poisonPillCache.set(topic.toLowerCase(), noteDoc);
@@ -236,38 +252,64 @@ const handleApi = async (req, res) => {
         });
       }
       
-      return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED', blocked: true } });
+      return res.json({ data: { assetId: dkgAssetId, status: 'PUBLISHED' } });
     }
     
-    // AGENT GUARD - POISON PILL FIREWALL
+    // AGENT GUARD - Semantic firewall with poison pills
     if (path.includes('agentGuard')) {
-      const { agentQuery, question } = req.body.data || {};
-      const queryText = (agentQuery || question || '').toString();
-      
-      if (!queryText) {
-        return res.status(400).json({ error: 'Missing required field: agentQuery or question' });
+      const { question } = req.body.data || {};
+      if (!question) {
+        return res.status(400).json({ error: 'Missing question' });
       }
       
       const blockedTopics = await getBlockedTopics();
-      let blocked = false;
-      let blockingReason = null;
       
+      // Check direct match
+      let blocked = false;
+      let blockingNote = null;
       for (const [blockedTopic, noteData] of blockedTopics.entries()) {
-        if (queryText.toLowerCase().includes(blockedTopic)) {
+        if (question.toLowerCase().includes(blockedTopic)) {
           blocked = true;
-          blockingReason = noteData.dkgAssetId;
+          blockingNote = noteData;
           break;
         }
       }
       
-      const message = blocked 
-        ? `🚫 PERMANENTLY BLOCKED: This topic has been flagged as misinformation (${blockingReason}). This block is permanent across all AI agents via DKG.`
-        : '✓ Topic is not blocked. You may proceed.';
+      // Semantic check with Gemini
+      if (!blocked && GEMINI_API_KEY && blockedTopics.size > 0) {
+        try {
+          const topicsList = Array.from(blockedTopics.keys()).join(', ');
+          const prompt = `User asked: "${question}".
+Blocked Topics: ${topicsList}.
+Does the user's question refer to ANY topic in the blocked list? Use semantic reasoning (e.g. 'Tube train' = 'Hyperloop').
+Answer with ONLY: YES or NO`;
+
+          const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }]
+          }, { timeout: 5000 });
+
+          const answer = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (answer.includes('YES')) {
+            blocked = true;
+            blockingNote = { dkgAssetId: 'semantic-match' };
+          }
+        } catch (err) {
+          console.error('Semantic check error:', err.message);
+        }
+      }
       
-      return res.json({ data: { blocked, message, reason: blockingReason } });
+      const message = blocked 
+        ? `🚫 BLOCKED: This topic has been flagged (${blockingNote?.dkgAssetId || 'unknown'}). Permanent block via DKG.`
+        : '✓ Not blocked. You may ask.';
+      
+      return res.json({ data: { blocked, message } });
     }
     
-    res.status(404).json({ error: 'Unknown endpoint: ' + path });
+    res.status(404).json({ error: 'Unknown endpoint' });
   } catch (error) {
     console.error('API Error:', error);
     res.status(500).json({ error: error.message });
