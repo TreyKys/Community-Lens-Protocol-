@@ -186,7 +186,7 @@ const handleApi = async (req, res) => {
         id: doc.id,
         ...doc.data()
       }));
-      return res.json({ data: bounties });
+      return res.json(bounties);
     }
     
     // CREATE BOUNTY - Clean input with Gemini
