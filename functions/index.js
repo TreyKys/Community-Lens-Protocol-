@@ -7,38 +7,24 @@ import axios from 'axios';
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Lazy initialize Gemini - try multiple sources
+// Initialize Gemini on first request
 let genAI = null;
 const getGeminiClient = () => {
   if (genAI) return genAI;
   
-  let apiKey = null;
+  let apiKey = process.env.GEMINI_API_KEY || 'AIzaSyD1DcF24HWQKslGkN4mwXJK8Bviqnnp_8M';
   
-  // Try 1: Direct env var (Firebase Secrets or Replit)
-  apiKey = process.env.GEMINI_API_KEY;
-  
-  // Try 2: Firebase runtime config
-  if (!apiKey) {
-    try {
-      apiKey = functions.config()?.gemini?.api_key;
-    } catch (e) {
-      // Ignore
+  try {
+    if (!apiKey || apiKey === 'your_gemini_api_key') {
+      throw new Error('No valid API key');
     }
+    genAI = new GoogleGenerativeAI(apiKey);
+    console.log('✅ Gemini initialized');
+    return genAI;
+  } catch (err) {
+    console.error('❌ Gemini init failed:', err.message);
+    return null;
   }
-  
-  if (apiKey) {
-    try {
-      genAI = new GoogleGenerativeAI(apiKey);
-      console.log('✅ Gemini ready');
-      return genAI;
-    } catch (err) {
-      console.error('Gemini error:', err.message);
-      return null;
-    }
-  }
-  
-  console.warn('GEMINI_API_KEY not configured');
-  return null;
 };
 
 // POISON PILL CACHE - Permanent blocks
