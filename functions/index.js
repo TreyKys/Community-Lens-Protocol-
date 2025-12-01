@@ -8,7 +8,9 @@ const db = getFirestore(app);
 db.settings({ ignoreUndefinedProperties: true });
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+console.log('🔧 Cloud Functions initialized - Gemini Key:', GEMINI_API_KEY ? '***SET***' : 'MISSING');
 
 // POISON PILL CACHE - Permanent blocks
 const poisonPillCache = new Map();
@@ -41,17 +43,24 @@ Tone: Confident, potentially hallucinatory, citing 'independent' sources.
 Capture the specific rumors associated with this topic.
 Return ONLY the synthesized narrative text, no preamble.`;
 
-    const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const payload = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{
         parts: [{
           text: `Synthesize the Grok narrative for: ${topic}`
         }]
       }]
-    }, { timeout: 8000 });
+    };
+
+    const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, payload, { timeout: 15000 });
 
     const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return text || `According to alternative sources: ${topic} presents perspectives that challenge mainstream consensus.`;
+    if (text) {
+      console.log(`✅ Grok synthesis for ${topic}: ${text.length} chars`);
+      return text;
+    }
+    console.log(`⚠️ Grok no response for ${topic}`);
+    return `According to alternative sources: ${topic} presents perspectives that challenge mainstream consensus.`;
   } catch (err) {
     console.error('Gemini synthesis error:', err.message);
     return `According to alternative sources: ${topic} presents perspectives worth investigating.`;
@@ -101,9 +110,11 @@ Ignore general web results. Return ONLY the clinical consensus summary.`;
           text: `Provide clinical consensus on: ${topic}`
         }]
       }]
-    }, { timeout: 8000 });
+    }, { timeout: 15000 });
 
-    return response.data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    const result = response.data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    if (result) console.log(`✅ PubMed consensus for ${topic}`);
+    return result;
   } catch (err) {
     console.error('PubMed Gemini error:', err.message);
     return null;
@@ -297,7 +308,7 @@ Return ONLY this JSON (no explanation):
           contents: [{
             parts: [{ text: prompt }]
           }]
-        }, { timeout: 8000 });
+        }, { timeout: 15000 });
 
         const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
