@@ -7,21 +7,45 @@ import axios from 'axios';
 const app = initializeApp();
 const db = getFirestore(app);
 
-// Lazy initialize Gemini - only call from within handlers
+// Lazy initialize Gemini - try multiple sources
 let genAI = null;
 const getGeminiClient = () => {
   if (genAI) return genAI;
   
   try {
-    // Firebase runtime config available inside request handlers
-    const apiKey = functions.config()?.gemini?.api_key;
+    // Try 1: Firebase runtime config (for deployed with firebase config set)
+    let apiKey = null;
+    try {
+      apiKey = functions.config()?.gemini?.api_key;
+    } catch (e) {
+      // Firebase config might not be available
+    }
+    
+    // Try 2: Environment variables (Replit secrets become env vars)
+    if (!apiKey) {
+      apiKey = process.env.GEMINI_API_KEY;
+    }
+    
+    // Try 3: Direct import from .env.local (development)
+    if (!apiKey && process.env.NODE_ENV !== 'production') {
+      try {
+        const dotenv = require('dotenv');
+        dotenv.config({ path: '.env.local' });
+        apiKey = process.env.GEMINI_API_KEY;
+      } catch (e) {
+        // .env not available
+      }
+    }
+    
     if (apiKey) {
       genAI = new GoogleGenerativeAI(apiKey);
-      console.log('Gemini initialized successfully');
+      console.log('✅ Gemini initialized successfully');
       return genAI;
+    } else {
+      console.warn('⚠️ GEMINI_API_KEY not found in any source');
     }
   } catch (err) {
-    console.error('Failed to initialize Gemini:', err.message);
+    console.error('❌ Failed to initialize Gemini:', err.message);
   }
   return null;
 };
