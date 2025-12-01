@@ -13,11 +13,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Cloud Functions for ALL features (everything on Firebase)
+// Endpoints - use local backend in dev, Cloud Functions in production
 const CLOUD_FUNCTIONS_URL = 'https://us-central1-community-lens-dd945.cloudfunctions.net/api';
+const LOCAL_BACKEND_URL = 'http://localhost:8080/api';
+const API_URL = import.meta.env.DEV ? LOCAL_BACKEND_URL : CLOUD_FUNCTIONS_URL;
 
 const callFunction = async (endpoint, data) => {
-  const url = `${CLOUD_FUNCTIONS_URL}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
   
   try {
     const response = await fetch(url, {
@@ -35,14 +37,14 @@ const callFunction = async (endpoint, data) => {
 
 export const createBounty = (data) => callFunction('/createBounty', data);
 export const fetchGrokSource = (data) => callFunction('/grok', data);
-export const fetchConsensus = (data) => callFunction('/fetchConsensus', data);
+export const fetchConsensus = (data) => callFunction('/wikipedia', data);
 export const analyzeDiscrepancy = (data) => callFunction('/analyze', data);
 export const verifyAndMint = (data) => callFunction('/verifyAndMint', data);
 export const mintCommunityNote = (data) => callFunction('/mintCommunityNote', data);
 export const agentGuard = (data) => callFunction('/agentGuard', data);
 
 export const getBounties = async () => {
-  const url = `${CLOUD_FUNCTIONS_URL}/getBounties`;
+  const url = `${API_URL}/getBounties`;
   
   try {
     const response = await fetch(url);
