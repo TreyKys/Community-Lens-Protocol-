@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Gemini with API key from environment
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyD1DcF24HWQKslGkN4mwXJK8Bviqnnp_8M';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AlzaSyDEeFlgqsJbbU9rJ-D0cxi0Xzu0C6sjqRQ';
 let genAI = null;
 
 try {
