@@ -120,6 +120,7 @@ externalPort = 8099
 [userenv]
 
 [userenv.shared]
+GEMINI_API_KEY = "AIzaSyBMvVmidmvIKrmU4-K93jmExbf0A2lMbms"
 
 [deployment]
 deploymentTarget = "autoscale"
