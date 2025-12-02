@@ -1,4 +1,4 @@
-# Community Lens - AI Fact-Checking Marketplace
+# Community Lens Protocol - AI Fact-Checking Marketplace & Engine
 
 Community Lens is a decentralized fact-checking marketplace that combines AI-powered verification with OriginTrail DKG integration. The platform creates bounties for claim verification, uses Gemini AI to analyze discrepancies against consensus sources (Wikipedia/PubMed), and implements a "poison pill" mechanism to permanently block misinformation.
 
