@@ -47,12 +47,16 @@ export const getBounties = async () => {
   const url = `${API_URL}/getBounties`;
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
     return result;
   } catch (error) {
-    console.error('Bounties error:', error);
+    console.error('Bounties error:', error.message || error);
     throw error;
   }
 };
