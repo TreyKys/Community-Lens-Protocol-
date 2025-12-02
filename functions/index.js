@@ -21,13 +21,15 @@ const getBlockedTopics = async () => {
   // Only block topics that have been MINTED TO DKG (have dkgAssetId)
   const blockedDocs = await db.collection('communityNotes')
     .where('status', '==', 'PUBLISHED')
-    .where('dkgAssetId', '!=', null)
     .get();
   
   blockedDocs.docs.forEach(doc => {
     const note = doc.data();
-    poisonPillCache.set(note.topic.toLowerCase(), note);
-    console.log(`🔒 DKG-blocked topic: ${note.topic} (Asset: ${note.dkgAssetId})`);
+    // Filter in code: only cache topics with dkgAssetId
+    if (note.dkgAssetId) {
+      poisonPillCache.set(note.topic.toLowerCase(), note);
+      console.log(`🔒 DKG-blocked topic: ${note.topic} (Asset: ${note.dkgAssetId})`);
+    }
   });
   
   return poisonPillCache;
