@@ -213,7 +213,7 @@ const handleApi = async (req, res) => {
     }
     
     // FETCH CONSENSUS - Wikipedia + PubMed toggle
-    if (path.includes('fetchConsensus')) {
+    if (path.includes('fetchConsensus') || path.includes('wikipedia')) {
       const { topic, mode } = req.body.data || {};
       
       let text = '';
