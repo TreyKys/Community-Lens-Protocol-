@@ -28,7 +28,8 @@ Community Lens is a decentralized fact-checking marketplace that combines AI-pow
 - Unique UAL (Uniform Asset Locator) for each Community Note
 - Blockchain-verified integrity and traceability
 
-🗺️ User Journey Maps & Example Flows
+🗺️**User Journey Maps & Example Flows**
+
 👩‍🎓 1. The Whistleblower (Amina, Medical Student)
  * Goal: Amina is researching for her thesis on Malaria prevention.
  * The Conflict: She finds a viral thread on Grok/X claiming that "Artemisia tea is 100% effective and WHO is hiding it." She suspects this is dangerous misinformation but lacks the time to do a deep clinical review.
@@ -37,6 +38,7 @@ Community Lens is a decentralized fact-checking marketplace that combines AI-pow
    * She pastes the tweet.
    * Gemini instantly formats it into a Bounty: "Topic: Artemisia Efficacy vs WHO Guidelines."
  * The Reward: The NCDC (Sponsor) funds the bounty. When verified, Amina earns +50 Reputation Points on the Leaderboard for protecting her community.
+
 👨‍⚕️ 2. The Verifier (Dr. Chioma, Pharmacist)
  * Goal: Dr. Chioma wants to contribute to public health and earn extra income using her expertise.
  * The Action:
@@ -46,6 +48,7 @@ Community Lens is a decentralized fact-checking marketplace that combines AI-pow
    * She toggles the "PubMed Mode" switch. The AI presents strict clinical trials proving Artemisia monotherapy causes drug resistance.
    * She reviews the Purity Score (10/100) and clicks "Mint Community Note."
  * The Reward: She receives the 500 TRAC bounty and her DID is permanently cryptographically signed to the Truth Patch on the OriginTrail DKG.
+
 🤖 3. The End User (EduBot, AI Tutor)
  * Goal: A local university runs "EduBot," an AI tutor for students. They want to ensure it never teaches fake science.
  * The Action:
