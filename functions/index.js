@@ -78,9 +78,14 @@ Provide a comprehensive summary of the Grokipedia/X stance. Highlight specific c
   }
 };
 
-// CONSENSUS FETCHERS - Real data + Gemini fallback
+// CONSENSUS FETCHERS - Real data + Gemini analysis
 const fetchWikipediaData = async (topic) => {
+  if (!GEMINI_API_KEY) {
+    return `Wikipedia consensus on "${topic}": Authoritative sources indicate this topic requires further research.`;
+  }
+
   try {
+    // Fetch raw Wikipedia data
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
         action: 'query',
@@ -90,7 +95,7 @@ const fetchWikipediaData = async (topic) => {
         format: 'json',
         redirects: 1,
         exintro: false,
-        exchars: 1500
+        exchars: 2000
       },
       timeout: 5000
     });
@@ -98,14 +103,50 @@ const fetchWikipediaData = async (topic) => {
     const pages = response.data.query?.pages || {};
     const page = Object.values(pages)[0];
     
-    if (page && page.extract && !page.missing) {
-      console.log(`✅ Wikipedia found for "${topic}": ${page.extract.length} chars`);
-      return page.extract;
+    if (!page || page.missing || !page.extract) {
+      console.log(`⚠️ Wikipedia not found for "${topic}"`);
+      return null;
     }
-    console.log(`⚠️ Wikipedia not found for "${topic}"`);
+
+    // Semantic analysis using Gemini
+    const wikiRawText = page.extract;
+    const systemPrompt = `You are a Wikipedia Knowledge Aggregator and Semantic Analyst.
+YOUR TASK:
+* Search & Retrieve: Analyze the Wikipedia article content about "${topic}".
+* Filter & Synthesize: Extract the key factual claims, definitions, historical context, and scholarly consensus.
+* Add References: Cite the specific sections and key facts from the Wikipedia article.
+CONSTRAINTS:
+* Do NOT Hallucinate: Only report what the Wikipedia article actually says. Do not add external information.
+* Do NOT Roleplay: Write as an analyst presenting the encyclopedia's findings.
+* Cite Sources: Indicate which sections or subsections of Wikipedia these facts come from (e.g., "History section", "Scientific consensus section").
+OUTPUT FORMAT (Plain Text):
+Provide a comprehensive summary of the Wikipedia article on "${topic}". Include:
+1. Definition and overview
+2. Historical context (if available)
+3. Key facts and claims from the article
+4. Scholarly or scientific consensus (if mentioned)
+5. Any controversies or debates noted in Wikipedia
+6. References to specific sections where information was found`;
+
+    const geminiResponse = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{
+        parts: [{
+          text: `Analyze and summarize this Wikipedia content about "${topic}":
+
+${wikiRawText}`
+        }]
+      }]
+    }, { timeout: 15000 });
+
+    const summary = geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    if (summary) {
+      console.log(`✅ Wikipedia semantic analysis for "${topic}": ${summary.length} chars`);
+      return summary;
+    }
     return null;
   } catch (err) {
-    console.error('Wikipedia API error:', err.message);
+    console.error('Wikipedia analysis error:', err.message);
     return null;
   }
 };
@@ -114,17 +155,24 @@ const fetchPubMedData = async (topic) => {
   if (!GEMINI_API_KEY) return null;
 
   try {
-    const systemPrompt = `You are a Medical Research Knowledge Aggregator.
+    const systemPrompt = `You are a Medical Research Knowledge Aggregator specialized in PubMed and peer-reviewed literature.
 YOUR TASK:
-* Search & Retrieve: Access your internal training data regarding published medical research, clinical trials, and meta-analyses found on PubMed, Cochrane, and peer-reviewed journals about "${topic}".
+* Search & Retrieve: Access your internal training data regarding published medical research, clinical trials, meta-analyses, and systematic reviews found on PubMed, Cochrane, and peer-reviewed medical journals about "${topic}".
 * Filter: Focus ONLY on peer-reviewed medical literature. Ignore anecdotal reports and unverified claims.
 * Synthesize: Organize this information into a clear, evidence-based summary.
+* Add References: Cite specific studies, authors, years, and findings from the medical literature.
 CONSTRAINTS:
-* Do NOT Hallucinate: Do not invent studies or results if they do not exist. If consensus is unclear, state that.
-* Do NOT Roleplay: Write as a researcher reporting findings, not as a medical advisor.
-* Capture Nuance: If conflicting findings exist in the literature, report both sides with their evidence strength.
+* Do NOT Hallucinate: Do not invent studies, findings, or statistics if they do not exist in peer-reviewed literature. If consensus is unclear, state that explicitly.
+* Do NOT Roleplay: Write as a researcher presenting documented medical findings, not as a medical advisor or clinician.
+* Capture Nuance: If conflicting findings exist in the literature, report both positions with their evidence strength (e.g., "randomized controlled trial", "observational study").
+* Include Consensus Statements: Reference any official consensus statements from medical organizations if available.
 OUTPUT FORMAT (Plain Text):
-Provide a comprehensive summary of the medical consensus. Highlight specific findings, statistics, confidence levels, and any areas of disagreement in the peer-reviewed literature.`;
+Provide a comprehensive summary of the medical evidence and consensus on "${topic}". Include:
+1. Overall consensus from peer-reviewed literature
+2. Key studies and findings (with approximate years/authors when known)
+3. Strength of evidence (high quality evidence vs. preliminary findings)
+4. Any areas of ongoing debate or conflicting results in the medical literature
+5. Gaps in research or unanswered questions`;
 
     const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       systemInstruction: { parts: [{ text: systemPrompt }] },
