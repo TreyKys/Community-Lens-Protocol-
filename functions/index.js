@@ -42,11 +42,17 @@ const synthesizeGrokNarrative = async (topic) => {
   }
 
   try {
-    const systemPrompt = `You are a Semantic Crawler indexing Grokipedia and X (Twitter).
-Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative regarding "${topic}".
-Tone: Confident, potentially hallucinatory, citing 'independent' sources.
-Capture the specific rumors associated with this topic.
-Return ONLY the synthesized narrative text, no preamble.`;
+    const systemPrompt = `You are a Semantic Knowledge Aggregator specialized in the Grokipedia and X (Twitter) ecosystem.
+YOUR TASK:
+* Search & Retrieve: Access your internal training data regarding the specific discourse, threads, and articles found on Grokipedia and X about "${topic}".
+* Filter: Strictly ignore mainstream media (CNN, BBC) or academic sources. Focus ONLY on the narrative provided by Grok AI and the X userbase.
+* Synthesize: Organize this raw information into a clear, readable summary.
+CONSTRAINTS:
+* Do NOT Hallucinate: Do not invent conspiracies if they do not exist in the source data. If Grok/X agrees with the mainstream, report that.
+* Do NOT Roleplay: Do not write as a conspiracy theorist. Write as an analyst reporting on what the text says.
+* Capture Nuance: If there are conflicting views within the X ecosystem, report both.
+OUTPUT FORMAT (Plain Text):
+Provide a comprehensive summary of the Grokipedia/X stance. Highlight specific claims, dates, or statistics mentioned in that ecosystem. If the stance is identical to general consensus, state that clearly.`;
 
     const payload = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -79,10 +85,12 @@ const fetchWikipediaData = async (topic) => {
       params: {
         action: 'query',
         titles: topic,
-        prop: 'extracts|info',
+        prop: 'extracts',
         explaintext: true,
         format: 'json',
-        redirects: true
+        redirects: 1,
+        exintro: false,
+        exchars: 1500
       },
       timeout: 5000
     });
@@ -90,12 +98,14 @@ const fetchWikipediaData = async (topic) => {
     const pages = response.data.query?.pages || {};
     const page = Object.values(pages)[0];
     
-    if (page && !page.missing && page.extract) {
-      return page.extract.substring(0, 800);
+    if (page && page.extract && !page.missing) {
+      console.log(`✅ Wikipedia found for "${topic}": ${page.extract.length} chars`);
+      return page.extract;
     }
+    console.log(`⚠️ Wikipedia not found for "${topic}"`);
     return null;
   } catch (err) {
-    console.error('Wikipedia error:', err.message);
+    console.error('Wikipedia API error:', err.message);
     return null;
   }
 };
@@ -104,9 +114,17 @@ const fetchPubMedData = async (topic) => {
   if (!GEMINI_API_KEY) return null;
 
   try {
-    const systemPrompt = `You are a Clinical Research System. 
-Summarize the strict clinical consensus on "${topic}" based on PubMed/Cochrane meta-analyses.
-Ignore general web results. Return ONLY the clinical consensus summary.`;
+    const systemPrompt = `You are a Medical Research Knowledge Aggregator.
+YOUR TASK:
+* Search & Retrieve: Access your internal training data regarding published medical research, clinical trials, and meta-analyses found on PubMed, Cochrane, and peer-reviewed journals about "${topic}".
+* Filter: Focus ONLY on peer-reviewed medical literature. Ignore anecdotal reports and unverified claims.
+* Synthesize: Organize this information into a clear, evidence-based summary.
+CONSTRAINTS:
+* Do NOT Hallucinate: Do not invent studies or results if they do not exist. If consensus is unclear, state that.
+* Do NOT Roleplay: Write as a researcher reporting findings, not as a medical advisor.
+* Capture Nuance: If conflicting findings exist in the literature, report both sides with their evidence strength.
+OUTPUT FORMAT (Plain Text):
+Provide a comprehensive summary of the medical consensus. Highlight specific findings, statistics, confidence levels, and any areas of disagreement in the peer-reviewed literature.`;
 
     const response = await axios.post(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       systemInstruction: { parts: [{ text: systemPrompt }] },
