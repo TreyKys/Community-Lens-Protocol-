@@ -18,7 +18,7 @@ db.settings({ ignoreUndefinedProperties: true });
 // Configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Using standard flash model or fallback to pro if needed.
-const model = initAI(GEMINI_API_KEY, 'gemini-1.5-flash');
+const model = initAI(GEMINI_API_KEY, 'gemini-2.5-flash');
 
 console.log('🔧 Cloud Functions initialized');
 

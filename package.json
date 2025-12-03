@@ -8,7 +8,7 @@
     "server": "node server.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/genai": "^1.30.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dkg.js": "^8.2.0",

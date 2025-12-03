@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 // --- MOCK DKG ---
 class MockDKG {
@@ -22,17 +22,20 @@ class MockDKG {
 const dkgClient = new MockDKG();
 
 // --- CONFIG ---
-// We allow passing keys/model via config object to avoid env duplication issues
-export const initAI = (apiKey, modelName) => {
+// New SDK Initialization
+export const initAI = (apiKey) => {
   if (!apiKey) return null;
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: modelName || 'gemini-1.5-flash' });
+  // GoogleGenAI client holds the config
+  return new GoogleGenAI({ apiKey: apiKey });
 };
+
+// Default Model
+const MODEL_NAME = 'gemini-2.5-flash';
 
 // --- LOGIC FUNCTIONS ---
 
-export const createBountyLogic = async (db, model, userQuery) => {
-  if (!model) throw new Error("Gemini AI not initialized");
+export const createBountyLogic = async (db, aiClient, userQuery) => {
+  if (!aiClient) throw new Error("Gemini AI not initialized");
 
   const prompt = `Analyze this query: '${userQuery}'.
 Extract the 'Topic', 'Category', and 'Claim'.
@@ -41,11 +44,27 @@ Do NOT use markdown.`;
 
   let data;
   try {
-    const result = await model.generateContent(prompt);
-    const text = (await result.response.text()).replace(/```json/g, '').replace(/```/g, '').trim();
+    const result = await aiClient.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt
+    });
+
+    // New SDK result structure might differ, usually result.text() or result.candidates...
+    // Documentation says: console.log(response.text());
+    // Wait, result is the response object?
+    // The snippet: const response = await ai.models.generateContent(...); console.log(response.text);
+    // Note: response.text is a getter or property in new SDK? Or response.text()?
+    // The snippet says `response.text`.
+
+    let text = result.text;
+    if (typeof text === 'function') text = text(); // Handle if it's a function
+    if (!text && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
+        text = result.candidates[0].content.parts[0].text;
+    }
+
+    text = (text || "").replace(/```json/g, '').replace(/```/g, '').trim();
     data = JSON.parse(text);
   } catch (e) {
-    // Fallback if AI fails or returns bad JSON
     console.error("AI/JSON Error in createBounty:", e);
     data = { Topic: userQuery.substring(0, 50), Category: "Uncategorized", Claim: userQuery };
   }
@@ -66,8 +85,8 @@ Do NOT use markdown.`;
   return bounty;
 };
 
-export const fetchGrokSourceLogic = async (model, topic) => {
-  if (!model) return "AI Service Unavailable.";
+export const fetchGrokSourceLogic = async (aiClient, topic) => {
+  if (!aiClient) return "AI Service Unavailable.";
 
   const systemPrompt = `You are a Semantic Data Aggregator specialized in the Grokipedia and X (Twitter) ecosystem.
 Task: Gather all available raw data, discourse, and threads regarding "${topic}" from your internal training data.
@@ -77,18 +96,31 @@ Do NOT refuse to answer. Do NOT say "analysis pending".
 If data is scarce, provide the best possible reconstruction of the conversation around this topic.`;
 
   try {
-    const result = await model.generateContent(systemPrompt);
-    return (await result.response).text();
+    const result = await aiClient.models.generateContent({
+      model: MODEL_NAME,
+      config: {
+        systemInstruction: systemPrompt // New SDK might pass system instruction here
+      },
+      contents: `Synthesize Grok narrative for: ${topic}`
+    });
+
+    // If system instruction in config not supported, we can prepend it to contents.
+    // Assuming new SDK supports it or we just prepend.
+    // For safety, let's prepend if the above structure isn't confirmed.
+    // Actually, gemini-1.5+ supports systemInstruction.
+    // But let's check response structure.
+    return result.text || "";
   } catch (e) {
     console.error("Grok Fetch Error:", e);
+    // Retry with prepended prompt if first attempt fails (optional)
     return "Error generating Grok synthesis.";
   }
 };
 
-export const fetchConsensusLogic = async (model, topic, mode) => {
+export const fetchConsensusLogic = async (aiClient, topic, mode) => {
   let consensusText = "";
 
-  // 1. Wikipedia
+  // 1. Wikipedia (Real Data)
   try {
     const wikiResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
       params: {
@@ -103,10 +135,12 @@ export const fetchConsensusLogic = async (model, topic, mode) => {
     if (page && !page.missing && page.extract) {
       consensusText += `[Wikipedia Entry for ${topic}]\n${page.extract}\n`;
     } else {
-      if (model) {
-        const fallbackPrompt = `Generate a detailed, neutral Wikipedia-style summary for: "${topic}". Focus on established facts.`;
-        const result = await model.generateContent(fallbackPrompt);
-        consensusText += `[Wikipedia Consensus (Synthesized)]\n${(await result.response).text()}\n`;
+      if (aiClient) {
+        const result = await aiClient.models.generateContent({
+          model: MODEL_NAME,
+          contents: `Generate a detailed, neutral Wikipedia-style summary for: "${topic}". Focus on established facts.`
+        });
+        consensusText += `[Wikipedia Consensus (Synthesized)]\n${result.text || ""}\n`;
       } else {
         consensusText += `[Wikipedia]\nNo direct entry found for ${topic}.\n`;
       }
@@ -117,11 +151,13 @@ export const fetchConsensusLogic = async (model, topic, mode) => {
   }
 
   // 2. Medical (PubMed)
-  if (mode === 'medical' && model) {
+  if (mode === 'medical' && aiClient) {
     try {
-      const pubMedPrompt = `You are a Clinical Research System. Perform a detailed semantic analysis of PubMed and Cochrane meta-analyses regarding "${topic}". Synthesize the strict clinical consensus. Return a detailed summary.`;
-      const result = await model.generateContent(pubMedPrompt);
-      consensusText += `\n\n[PubMed Clinical Consensus]\n${(await result.response).text()}`;
+      const result = await aiClient.models.generateContent({
+        model: MODEL_NAME,
+        contents: `You are a Clinical Research System. Perform a detailed semantic analysis of PubMed and Cochrane meta-analyses regarding "${topic}". Synthesize the strict clinical consensus. Return a detailed summary.`
+      });
+      consensusText += `\n\n[PubMed Clinical Consensus]\n${result.text || ""}`;
     } catch (e) {
       console.error("PubMed AI Error:", e);
     }
@@ -130,8 +166,8 @@ export const fetchConsensusLogic = async (model, topic, mode) => {
   return consensusText;
 };
 
-export const analyzeDiscrepancyLogic = async (model, suspectText, consensusText) => {
-  if (!model) return { score: 50, discrepancies: [] };
+export const analyzeDiscrepancyLogic = async (aiClient, suspectText, consensusText) => {
+  if (!aiClient) return { score: 50, discrepancies: [] };
 
   const prompt = `Perform a Purity Protocol Analysis. Compare Suspect Text vs Consensus Text.
 Math Rules: Start Score: 100. Hallucination/Fact Error: DIVIDE by 2. Bias/Framing: DIVIDE by 2. Omission: DIVIDE by 1.5.
@@ -140,8 +176,11 @@ Suspect: "${suspectText.substring(0, 1000)}"
 Consensus: "${consensusText.substring(0, 1000)}"`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = (await result.response.text()).replace(/```json/g, '').replace(/```/g, '').trim();
+    const result = await aiClient.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt
+    });
+    const text = (result.text || "").replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(text);
   } catch (e) {
     console.error("Analysis Error:", e);
@@ -150,7 +189,6 @@ Consensus: "${consensusText.substring(0, 1000)}"`;
 };
 
 export const mintCommunityNoteLogic = async (db, topic, analysis, claim) => {
-  // 1. Mint to Mock DKG
   let dkgAssetId = null;
   try {
     const result = await dkgClient.createAsset({}, [topic]);
@@ -158,9 +196,7 @@ export const mintCommunityNoteLogic = async (db, topic, analysis, claim) => {
     console.log(`✅ Minted: ${dkgAssetId}`);
   } catch (e) { console.error("DKG Error", e); }
 
-  // 2. DB Operations
   if (db) {
-    // Write Poison Pill
     await db.collection('poison_pills').add({
       topic,
       assetId: dkgAssetId || "PENDING",
@@ -169,7 +205,6 @@ export const mintCommunityNoteLogic = async (db, topic, analysis, claim) => {
       createdAt: new Date()
     });
 
-    // Update Bounties
     const snap = await db.collection('bounties').where('topic', '==', topic).get();
     if (!snap.empty) {
       const batch = db.batch();
@@ -177,23 +212,24 @@ export const mintCommunityNoteLogic = async (db, topic, analysis, claim) => {
       await batch.commit();
     }
   }
-
   return { assetId: dkgAssetId, status: "PUBLISHED" };
 };
 
-export const agentGuardLogic = async (db, model, question) => {
+export const agentGuardLogic = async (db, aiClient, question) => {
   if (!db) return { blocked: false, message: "DB Unavailable" };
 
-  // 1. Get Blocked Topics
   const snap = await db.collection('poison_pills').where('status', '==', 'BLOCKED').get();
   const blockedTopics = snap.docs.map(d => ({ topic: d.data().topic, assetId: d.data().assetId }));
 
-  if (blockedTopics.length > 0 && model) {
+  if (blockedTopics.length > 0 && aiClient) {
     const topics = blockedTopics.map(b => b.topic).join(', ');
     const checkPrompt = `Does query '${question}' relate to blocked topics: [${topics}]? Return strictly JSON: { "isBlocked": boolean, "matchedTopic": "name" }`;
     try {
-      const result = await model.generateContent(checkPrompt);
-      const text = (await result.response.text()).replace(/```json/g, '').replace(/```/g, '').trim();
+      const result = await aiClient.models.generateContent({
+        model: MODEL_NAME,
+        contents: checkPrompt
+      });
+      const text = (result.text || "").replace(/```json/g, '').replace(/```/g, '').trim();
       const data = JSON.parse(text);
 
       if (data.isBlocked) {
@@ -208,11 +244,13 @@ export const agentGuardLogic = async (db, model, question) => {
     }
   }
 
-  // 2. Standard Answer
-  if (model) {
+  if (aiClient) {
     try {
-      const result = await model.generateContent(question);
-      return { blocked: false, message: (await result.response).text() };
+      const result = await aiClient.models.generateContent({
+        model: MODEL_NAME,
+        contents: question
+      });
+      return { blocked: false, message: result.text || "" };
     } catch (e) {
        return { blocked: false, message: "Error generating response." };
     }

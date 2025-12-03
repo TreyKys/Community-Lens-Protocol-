@@ -43,7 +43,7 @@ try {
 
 // --- AI SETUP ---
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const model = initAI(GEMINI_API_KEY, 'gemini-1.5-flash');
+const model = initAI(GEMINI_API_KEY, 'gemini-2.5-flash');
 if (model) console.log('🤖 Gemini Model Initialized');
 
 // --- ROUTES ---
