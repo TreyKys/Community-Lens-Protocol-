@@ -1,7 +1,18 @@
 import express from 'express';
 import cors from 'cors';
-import axios from 'axios';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import {
+  initAI,
+  createBountyLogic,
+  fetchGrokSourceLogic,
+  fetchConsensusLogic,
+  analyzeDiscrepancyLogic,
+  mintCommunityNoteLogic,
+  agentGuardLogic
+} from './functions/core.js';
 
 dotenv.config();
 
@@ -11,295 +22,83 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
-console.log('✅ Community Lens Backend Started');
-console.log(`✅ Gemini Key: ${GEMINI_API_KEY ? '***SET***' : 'MISSING'}`);
-
-// Rate limiter for Gemini API (15 requests/min on free tier)
-let requestQueue = [];
-let lastRequest = 0;
-const MIN_INTERVAL = 4000; // 4 seconds = 15 requests/min
-
-const waitForRateLimit = async () => {
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequest;
-  if (timeSinceLastRequest < MIN_INTERVAL) {
-    await new Promise(resolve => setTimeout(resolve, MIN_INTERVAL - timeSinceLastRequest));
+// --- FIREBASE SETUP ---
+let db;
+try {
+  const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './service-account.json';
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    const firebaseApp = initializeApp({ credential: cert(serviceAccount) });
+    db = getFirestore(firebaseApp);
+    console.log('🔥 Firebase Admin Initialized (Service Account)');
+  } else {
+    const firebaseApp = initializeApp();
+    db = getFirestore(firebaseApp);
+    console.log('🔥 Firebase Admin Initialized (Default Creds)');
   }
-  lastRequest = Date.now();
+  db.settings({ ignoreUndefinedProperties: true });
+} catch (e) {
+  console.error("⚠️ Firebase Init Error:", e.message);
+}
+
+// --- AI SETUP ---
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const model = initAI(GEMINI_API_KEY, 'gemini-2.5-flash');
+if (model) console.log('🤖 Gemini Model Initialized');
+
+// --- ROUTES ---
+const normalizeBody = (req, res, next) => {
+  if (req.body.data) req.body = req.body.data;
+  next();
 };
 
-// ═════════════════════════════════════════════════════════════════
-// AGENT 1: GROK SEMANTIC SYNTHESIS (Gemini 2.5)
-// ═════════════════════════════════════════════════════════════════
-app.post('/api/grok', async (req, res) => {
+app.post('/api/createBounty', normalizeBody, async (req, res) => {
+  try { res.json({ data: await createBountyLogic(db, model, req.body.userQuery) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/grok', normalizeBody, async (req, res) => {
+  try { res.json({ data: { text: await fetchGrokSourceLogic(model, req.body.topic) } }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/wikipedia', normalizeBody, async (req, res) => {
   try {
-    const { topic } = req.body.data || req.body;
-    
-    if (!GEMINI_API_KEY) {
-      return res.json({
-        text: `Alternative perspective on ${topic}: Independent sources suggest investigation needed.`,
-        source: 'Grokipedia (No API Key)',
-        fetched: false
-      });
-    }
-
-    await waitForRateLimit();
-
-    const systemPrompt = `You are a Semantic Crawler indexing Grokipedia and X (Twitter).
-Task: Synthesize the dominant 'Anti-Establishment' or 'Grok-style' narrative regarding "${topic}".
-Tone: Confident, potentially hallucinatory, citing 'independent' sources.
-Return ONLY the synthesized narrative text, no preamble. 2-3 paragraphs max.`;
-
-    const payload = {
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
-      contents: [{
-        parts: [{ text: `Synthesize Grok narrative for: ${topic}` }]
-      }]
-    };
-
-    console.log(`🔵 Grok request for: ${topic}`);
-    console.log(`   Payload keys:`, Object.keys(payload));
-    console.log(`   API URL:`, GEMINI_URL.substring(0, 80) + '...');
-    
-    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, payload, { timeout: 20000 });
-    
-    console.log(`   Response status:`, response.status);
-    console.log(`   Response data keys:`, Object.keys(response.data));
-    console.log(`   Candidates:`, response.data.candidates?.length || 0);
-
-    const grokText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    if (grokText) {
-      console.log(`✅ Grok synthesis generated for: ${topic} (${grokText.length} chars)`);
-      return res.json({
-        text: grokText,
-        source: 'Grokipedia (AI Synthesis)',
-        fetched: true
-      });
-    }
-
-    console.log(`⚠️ Grok no response text from Gemini for: ${topic}`);
-    res.json({
-      text: `Alternative narrative on ${topic}: Grok perspective pending analysis.`,
-      source: 'Grokipedia (No Response)',
-      fetched: false
-    });
-  } catch (err) {
-    const errorData = err.response?.data || {};
-    const errorMsg = err.response?.data?.error?.message || err.message;
-    console.error(`❌ Grok error [${err.response?.status}]:`, errorMsg);
-    if (errorData.error) console.error('   Full error:', JSON.stringify(errorData.error));
-    res.json({
-      text: `Grok synthesis available offline for "${req.body?.topic}". Please retry.`,
-      source: 'Grokipedia (Offline)',
-      fetched: false
-    });
-  }
+    const text = await fetchConsensusLogic(model, req.body.topic, req.body.mode);
+    res.json({ data: { consensusText: text, text } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ═════════════════════════════════════════════════════════════════
-// AGENT 2: WIKIPEDIA DATA FETCHER
-// ═════════════════════════════════════════════════════════════════
-app.post('/api/wikipedia', async (req, res) => {
+app.post('/api/analyze', normalizeBody, async (req, res) => {
+  try { res.json({ data: await analyzeDiscrepancyLogic(model, req.body.suspectText, req.body.consensusText) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/mintCommunityNote', normalizeBody, async (req, res) => {
+  try { res.json({ data: await mintCommunityNoteLogic(db, req.body.topic, req.body.analysis, req.body.claim) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/verifyAndMint', normalizeBody, async (req, res) => {
+    try { res.json({ data: await mintCommunityNoteLogic(db, req.body.topic, req.body.analysis, req.body.claim) }); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/agentGuard', normalizeBody, async (req, res) => {
+  try { res.json({ data: await agentGuardLogic(db, model, req.body.question) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/getBounties', async (req, res) => {
   try {
-    const { topic } = req.body.data || req.body;
-
-    const response = await axios.get('https://en.wikipedia.org/w/api.php', {
-      params: {
-        action: 'query',
-        titles: topic,
-        prop: 'extracts',
-        explaintext: true,
-        format: 'json',
-        exsentences: 5
-      },
-      headers: {
-        'User-Agent': 'Community-Lens/1.0'
-      },
-      timeout: 8000
-    });
-
-    const pages = response.data.query?.pages || {};
-    const page = Object.values(pages)[0];
-
-    if (page && !page.missing && page.extract) {
-      console.log(`✅ Wikipedia data fetched: ${page.title}`);
-      return res.json({
-        text: page.extract,
-        source: 'Wikipedia',
-        fetched: true
-      });
-    }
-
-    // Wikipedia not found - fallback to Gemini semantic analysis
-    console.log(`⚠️ Wikipedia article not found for "${topic}". Falling back to Gemini semantic analysis...`);
-    
-    if (!GEMINI_API_KEY) {
-      return res.json({
-        text: `Consensus analysis for "${topic}": Limited authoritative data available.`,
-        source: 'Semantic Analysis (No API)',
-        fetched: false
-      });
-    }
-
-    await waitForRateLimit();
-
-    const semanticPrompt = `Provide a factual, consensus-based summary about "${topic}". 
-Focus on mainstream scientific/academic understanding, peer-reviewed research, and established facts.
-Be objective and cite only widely-accepted information. 
-Return 2-3 sentences summarizing the consensus view.`;
-
-    const semanticResponse = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      contents: [{
-        parts: [{ text: semanticPrompt }]
-      }]
-    }, { timeout: 15000 });
-
-    const semanticText = semanticResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    if (semanticText) {
-      console.log(`✅ Gemini semantic analysis for "${topic}"`);
-      return res.json({
-        text: semanticText,
-        source: 'Semantic Analysis (Gemini)',
-        fetched: true
-      });
-    }
-
-    res.json({
-      text: `Consensus sources on "${topic}": Limited authoritative data available.`,
-      source: 'Semantic Analysis (Fallback)',
-      fetched: false
-    });
-  } catch (err) {
-    console.error('Wikipedia/Semantic error:', err.message);
-    res.json({
-      text: `Analysis for "${(req.body.data || req.body)?.topic}" pending. Please retry.`,
-      source: 'Analysis (Error)',
-      fetched: false
-    });
-  }
+    if (!db) return res.json({ data: [] });
+    const snap = await db.collection('bounties').orderBy('createdAt', 'desc').get();
+    res.json({ data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ═════════════════════════════════════════════════════════════════
-// AGENT 3: DIVISION MATH ANALYSIS (Gemini 2.5)
-// ═════════════════════════════════════════════════════════════════
-app.post('/api/analyze', async (req, res) => {
-  try {
-    const { suspectText, consensusText } = req.body.data || req.body;
-
-    if (!suspectText || !consensusText) {
-      return res.status(400).json({ error: 'Missing suspectText or consensusText' });
-    }
-
-    if (!GEMINI_API_KEY) {
-      return res.json({
-        score: 50,
-        verdict: 'ANALYSIS_PENDING',
-        contradictions: [{ text: 'API unavailable', factor: 1 }]
-      });
-    }
-
-    await waitForRateLimit();
-
-    const prompt = `Compare ONLY these two sources using Division Math:
-
-SUSPECT SOURCE: ${suspectText.substring(0, 600)}
-
-CONSENSUS SOURCE: ${consensusText.substring(0, 600)}
-
-SCORING: Start at 100. Divide by severity:
-- Minor diff ÷1.2, Factual ÷2, Opposite ÷5, Fabrication ÷10
-
-Return ONLY this JSON (no explanation):
-{
-  "score": <final number>,
-  "verdict": "ALIGNED|PARTIALLY_CONTRADICTORY|CONTRADICTORY",
-  "contradictions": [{"text": "description", "factor": <number>}]
-}`;
-
-    const response = await axios.post(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      contents: [{
-        parts: [{ text: prompt }]
-      }]
-    }, { timeout: 20000 });
-
-    const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
-    if (jsonMatch) {
-      try {
-        const analysis = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Analysis: ${analysis.score}/100 - ${analysis.verdict}`);
-        return res.json({
-          score: Math.round(analysis.score) || 50,
-          verdict: analysis.verdict || 'NEUTRAL',
-          contradictions: analysis.contradictions || [{ text: 'General divergence', factor: 1 }],
-          method: 'division_math'
-        });
-      } catch (parseErr) {
-        console.error('JSON parse error:', parseErr.message);
-      }
-    }
-
-    res.json({
-      score: 45,
-      verdict: 'CONTRADICTORY',
-      contradictions: [{ text: 'Significant factual divergence detected', factor: 2 }],
-      method: 'division_math'
-    });
-  } catch (err) {
-    const errorMsg = err.response?.data?.error?.message || err.message;
-    console.error(`❌ Analysis error [${err.response?.status}]:`, errorMsg);
-    if (err.response?.data?.error) console.error('   Full error:', JSON.stringify(err.response.data.error));
-    res.json({
-      score: 40,
-      verdict: 'ERROR',
-      contradictions: [{ text: 'Analysis service error', factor: 1 }]
-    });
-  }
-});
-
-// ═════════════════════════════════════════════════════════════════
-// GET BOUNTIES FROM FIRESTORE
-// ═════════════════════════════════════════════════════════════════
-app.get('/api/getBounties', async (req, res) => {
-  try {
-    const { initializeApp } = await import('firebase-admin/app');
-    const { getFirestore } = await import('firebase-admin/firestore');
-    
-    const firebaseApp = initializeApp();
-    const db = getFirestore(firebaseApp);
-    
-    const bountyDocs = await db.collection('bounties').orderBy('createdAt', 'desc').get();
-    const bounties = bountyDocs.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`✅ Fetched ${bounties.length} bounties from Firestore`);
-    res.json(bounties);
-  } catch (err) {
-    console.error('Bounties fetch error:', err.message);
-    res.json([]);
-  }
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.listen(port, () => {
-  console.log(`\n🚀 Community Lens Backend running on port ${port}`);
-  console.log(`📍 Endpoints:`);
-  console.log(`   POST /api/grok - Gemini Grok synthesis`);
-  console.log(`   POST /api/wikipedia - Real Wikipedia data`);
-  console.log(`   POST /api/analyze - Division Math scoring`);
-  console.log(`   GET /health - Health check\n`);
+  console.log(`🚀 Server running on port ${port}`);
 });

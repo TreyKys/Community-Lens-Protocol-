@@ -14,7 +14,7 @@
   "main": "index.js",
   "type": "module",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.30.0",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
     "dkg.js": "^8.2.0",
