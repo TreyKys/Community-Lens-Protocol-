@@ -31,6 +31,22 @@ export const initAI = (apiKey) => {
 
 // Default Model
 const MODEL_NAME = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-1.5-flash';
+
+// --- HELPER ---
+const generateContentWithFallback = async (aiClient, params) => {
+  try {
+    const result = await aiClient.models.generateContent({ ...params, model: MODEL_NAME });
+    return result;
+  } catch (error) {
+    // If 404 (Model Not Found), retry with fallback
+    if (error.message && error.message.includes('404')) {
+      console.warn(`⚠️ Model ${MODEL_NAME} failed (404). Retrying with ${FALLBACK_MODEL}...`);
+      return await aiClient.models.generateContent({ ...params, model: FALLBACK_MODEL });
+    }
+    throw error;
+  }
+};
 
 // --- LOGIC FUNCTIONS ---
 
@@ -44,20 +60,10 @@ Do NOT use markdown.`;
 
   let data;
   try {
-    const result = await aiClient.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt
-    });
-
-    // New SDK result structure might differ, usually result.text() or result.candidates...
-    // Documentation says: console.log(response.text());
-    // Wait, result is the response object?
-    // The snippet: const response = await ai.models.generateContent(...); console.log(response.text);
-    // Note: response.text is a getter or property in new SDK? Or response.text()?
-    // The snippet says `response.text`.
+    const result = await generateContentWithFallback(aiClient, { contents: prompt });
 
     let text = result.text;
-    if (typeof text === 'function') text = text(); // Handle if it's a function
+    if (typeof text === 'function') text = text();
     if (!text && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
         text = result.candidates[0].content.parts[0].text;
     }
@@ -96,23 +102,13 @@ Do NOT refuse to answer. Do NOT say "analysis pending".
 If data is scarce, provide the best possible reconstruction of the conversation around this topic.`;
 
   try {
-    const result = await aiClient.models.generateContent({
-      model: MODEL_NAME,
-      config: {
-        systemInstruction: systemPrompt // New SDK might pass system instruction here
-      },
+    const result = await generateContentWithFallback(aiClient, {
+      config: { systemInstruction: systemPrompt },
       contents: `Synthesize Grok narrative for: ${topic}`
     });
-
-    // If system instruction in config not supported, we can prepend it to contents.
-    // Assuming new SDK supports it or we just prepend.
-    // For safety, let's prepend if the above structure isn't confirmed.
-    // Actually, gemini-1.5+ supports systemInstruction.
-    // But let's check response structure.
     return result.text || "";
   } catch (e) {
     console.error("Grok Fetch Error:", e);
-    // Retry with prepended prompt if first attempt fails (optional)
     return "Error generating Grok synthesis.";
   }
 };
@@ -133,11 +129,18 @@ export const fetchConsensusLogic = async (aiClient, topic, mode) => {
     const page = Object.values(pages)[0];
 
     if (page && !page.missing && page.extract) {
-      consensusText += `[Wikipedia Entry for ${topic}]\n${page.extract}\n`;
+      // Use AI to synthesize the raw data if available, as per requirements
+      if (aiClient) {
+        const result = await generateContentWithFallback(aiClient, {
+          contents: `Synthesize a strict, neutral consensus summary from this Wikipedia data for "${topic}":\n${page.extract}`
+        });
+        consensusText += `[Wikipedia Consensus]\n${result.text || ""}\n`;
+      } else {
+        consensusText += `[Wikipedia Entry for ${topic}]\n${page.extract}\n`;
+      }
     } else {
       if (aiClient) {
-        const result = await aiClient.models.generateContent({
-          model: MODEL_NAME,
+        const result = await generateContentWithFallback(aiClient, {
           contents: `Generate a detailed, neutral Wikipedia-style summary for: "${topic}". Focus on established facts.`
         });
         consensusText += `[Wikipedia Consensus (Synthesized)]\n${result.text || ""}\n`;
@@ -153,8 +156,7 @@ export const fetchConsensusLogic = async (aiClient, topic, mode) => {
   // 2. Medical (PubMed)
   if (mode === 'medical' && aiClient) {
     try {
-      const result = await aiClient.models.generateContent({
-        model: MODEL_NAME,
+      const result = await generateContentWithFallback(aiClient, {
         contents: `You are a Clinical Research System. Perform a detailed semantic analysis of PubMed and Cochrane meta-analyses regarding "${topic}". Synthesize the strict clinical consensus. Return a detailed summary.`
       });
       consensusText += `\n\n[PubMed Clinical Consensus]\n${result.text || ""}`;
@@ -176,10 +178,7 @@ Suspect: "${suspectText.substring(0, 1000)}"
 Consensus: "${consensusText.substring(0, 1000)}"`;
 
   try {
-    const result = await aiClient.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt
-    });
+    const result = await generateContentWithFallback(aiClient, { contents: prompt });
     const text = (result.text || "").replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(text);
   } catch (e) {
@@ -225,10 +224,7 @@ export const agentGuardLogic = async (db, aiClient, question) => {
     const topics = blockedTopics.map(b => b.topic).join(', ');
     const checkPrompt = `Does query '${question}' relate to blocked topics: [${topics}]? Return strictly JSON: { "isBlocked": boolean, "matchedTopic": "name" }`;
     try {
-      const result = await aiClient.models.generateContent({
-        model: MODEL_NAME,
-        contents: checkPrompt
-      });
+      const result = await generateContentWithFallback(aiClient, { contents: checkPrompt });
       const text = (result.text || "").replace(/```json/g, '').replace(/```/g, '').trim();
       const data = JSON.parse(text);
 
@@ -246,10 +242,7 @@ export const agentGuardLogic = async (db, aiClient, question) => {
 
   if (aiClient) {
     try {
-      const result = await aiClient.models.generateContent({
-        model: MODEL_NAME,
-        contents: question
-      });
+      const result = await generateContentWithFallback(aiClient, { contents: question });
       return { blocked: false, message: result.text || "" };
     } catch (e) {
        return { blocked: false, message: "Error generating response." };
