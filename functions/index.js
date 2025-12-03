@@ -1,4 +1,5 @@
-import functions from 'firebase-functions';
+// 1. IMPORT FROM V2
+import { onRequest } from 'firebase-functions/v2/https';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
@@ -13,78 +14,56 @@ import {
 
 const app = initializeApp();
 const db = getFirestore(app);
-db.settings({ ignoreUndefinedProperties: true });
 
-// Configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Using standard flash model or fallback to pro if needed.
-const model = initAI(GEMINI_API_KEY, 'gemini-2.5-flash');
+if (!GEMINI_API_KEY) console.warn("⚠️ GEMINI_API_KEY missing!");
 
-console.log('🔧 Cloud Functions initialized');
+const model = initAI(GEMINI_API_KEY);
 
 const handleApi = async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-
+  // CORS is handled by the onRequest options below, but we keep this for safety
   if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
     res.status(204).send('');
     return;
   }
 
-  // Frontend uses camelCase paths
   const path = req.path;
-  const payload = req.body.data || req.body;
+  const data = req.body.data || req.body;
 
   try {
     if (path.includes('createBounty')) {
-      if (!payload.userQuery) return res.status(400).json({ error: "Missing userQuery" });
-      const result = await createBountyLogic(db, model, payload.userQuery);
+      const result = await createBountyLogic(db, model, data.userQuery);
       return res.json({ data: result });
     }
-
-    if (path.includes('grok') || path.includes('fetchGrokSource')) {
-      if (!payload.topic) return res.status(400).json({ error: "Missing topic" });
-      const text = await fetchGrokSourceLogic(model, payload.topic);
+    if (path.includes('grok')) {
+      const text = await fetchGrokSourceLogic(model, data.topic);
       return res.json({ data: { text } });
     }
-
-    if (path.includes('wikipedia') || path.includes('fetchConsensus')) {
-      if (!payload.topic) return res.status(400).json({ error: "Missing topic" });
-      const text = await fetchConsensusLogic(model, payload.topic, payload.mode);
-      return res.json({ data: { consensusText: text, text } });
+    if (path.includes('consensus')) {
+      const text = await fetchConsensusLogic(model, data.topic, data.mode);
+      return res.json({ data: { text } });
     }
-
     if (path.includes('analyze')) {
-      if (!payload.suspectText || !payload.consensusText) return res.status(400).json({ error: "Missing texts" });
-      const result = await analyzeDiscrepancyLogic(model, payload.suspectText, payload.consensusText);
+      const result = await analyzeDiscrepancyLogic(model, data.suspectText, data.consensusText);
       return res.json({ data: result });
     }
-
-    if (path.includes('mintCommunityNote') || path.includes('verifyAndMint')) {
-      if (!payload.topic || !payload.analysis) return res.status(400).json({ error: "Missing data" });
-      const result = await mintCommunityNoteLogic(db, payload.topic, payload.analysis, payload.claim || payload.topic);
+    if (path.includes('mint')) {
+      const result = await mintCommunityNoteLogic(db, data.topic, data.analysis);
       return res.json({ data: result });
     }
-
     if (path.includes('agentGuard')) {
-      if (!payload.question) return res.status(400).json({ error: "Missing question" });
-      const result = await agentGuardLogic(db, model, payload.question);
+      const result = await agentGuardLogic(db, model, data.question);
       return res.json({ data: result });
     }
 
-    if (path.includes('getBounties')) {
-      const snap = await db.collection('bounties').orderBy('createdAt', 'desc').get();
-      const bounties = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return res.json({ data: bounties });
-    }
-
-    return res.status(404).json({ error: "Endpoint not found" });
-
-  } catch (error) {
-    console.error("API Error:", error);
-    return res.status(500).json({ error: error.message });
+    res.status(404).json({ error: "Not Found" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 };
 
-export const api = functions.https.onRequest(handleApi);
+// 2. EXPORT USING V2 SYNTAX (Built-in CORS support)
+export const api = onRequest({ cors: true }, handleApi);
